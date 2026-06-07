@@ -343,16 +343,25 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
   </div>
   <div class="sign-body">
     <div class="fcard"><div class="fcard-title">סיכום</div><div id="sign-summary"></div></div>
-    <!-- Editable contract -->
+    <!-- Main brokerage contract -->
     <div class="fcard" style="padding:14px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div class="fcard-title" style="margin-bottom:0;border-bottom:none;padding-bottom:0">טקסט ההסכם</div>
+        <div class="fcard-title" style="margin-bottom:0;border-bottom:none;padding-bottom:0">הסכם תיווך</div>
         <button onclick="resetContractText()" style="font-size:10px;color:var(--gray);background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-family:'Heebo',sans-serif">↺ איפוס</button>
       </div>
       <textarea id="contract-text" style="width:100%;min-height:220px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:11px;line-height:1.85;color:var(--gray);resize:vertical;direction:rtl" dir="rtl"></textarea>
     </div>
+    <!-- Exclusivity contract — shown only when excl is on -->
+    <div class="fcard" id="excl-contract-card" style="display:none;padding:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div class="fcard-title" style="margin-bottom:0;border-bottom:none;padding-bottom:0;color:#6A1B9A">✦ הסכם בלעדיות</div>
+        <button onclick="resetExclText()" style="font-size:10px;color:var(--gray);background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-family:'Heebo',sans-serif">↺ איפוס</button>
+      </div>
+      <textarea id="excl-contract-text" style="width:100%;min-height:260px;border:1px solid rgba(106,27,154,0.3);border-radius:8px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:11px;line-height:1.85;color:var(--gray);resize:vertical;direction:rtl" dir="rtl"></textarea>
+    </div>
     <div class="sig-wrap">
-      <div class="sig-label">חתימת הלקוח — חתום/י כאן באצבע <span style="color:var(--gray);font-weight:400;font-size:10px">(אופציונלי — ניתן לשלוח לחתימה בדיעבד)</span></div>
+      <div id="dual-sig-note" style="display:none;background:#F3E5F5;border:1px solid rgba(106,27,154,0.3);border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:11px;color:#6A1B9A;line-height:1.5">⚠️ <strong>שים לב:</strong> החתימה הינה נוגעת לשני המסמכים — הסכם התיווך והסכם הבלעדיות כאחד.</div>
+      <div class="sig-label">חתימת הלקוח — חתום/י כאן באצבע <span style="color:var(--gray);font-weight:400;font-size:10px">(אופציונלי — ניתן לשלוח בדיעבד)</span></div>
       <div class="sig-canvas-wrap">
         <canvas id="sig-c"></canvas>
         <div class="sig-hint" id="sig-hint">חתום/י כאן</div>
@@ -1005,7 +1014,25 @@ function contractText(type,l,d){
   const excl=l==='en'?exclEn:exclHe;
   const T={
     'owner-sale':{
-      he:`1. הלקוח מצהיר בזאת כי הינו המחזיק החוקי ובעל הזכויות המלאות והחוקיות בנכס המקרקעין המתואר לעיל (להלן: "הנכס") או שהינו מורשה מטעם בעל/י הזכויות למוכרו ו/או להשכירו ו/או למסרו בדמי מפתח. הלקוח מצהיר כי הובהר לו כי פרטי הנכס יועמדו לידיעת קונים/שוכרים/מתווכים כדי לקדם את שיווק הנכס.\n\n2. הלקוח מתחייב להמציא למתווך מידית נסח רישום או אישור זכויות מרשות מקרקעי ישראל ו/או החברה המשכנת, עדכניים.\n\n3. הלקוח ישלם למתווך עבור פעולת התיווך, מיד עם חתימת הסכם מחייב למכירת הנכס.\n\n4. דמי התיווך:\n   4.1 במכירה: ${fs} ממחיר המכירה כקבוע בהסכם המכר.\n   4.2 אין באמור לעיל כדי לגרוע מזכותו של המתווך לגבות דמי תיווך מהקונה.\n\n5. הלקוח מאשר שהומלץ לו על ידי המתווך להסתייע בשירותי עורך דין ו/או מומחים אחרים לפי העניין והצורך במהלך העסקה.\n\n6. הלקוח מצהיר כי ידוע לו כי דמי התיווך ייגבו ע"י המתווך וכנגד חשבונית מס כחוק.\n\n7. שום ויתור, ארכה, הנחה או שינוי בתנאי כלשהוא בהסכם זה, לא יהיו בני תוקף, אלא אם יעשו בכתב. שום איחור בשימוש בזכויותיו של צד כלשהוא לא ייחשב כויתור.\n\n8. יחידי הצדדים יהיו אחראים על פי הסכם זה ביחד ולחוד. כל אימת שאחד מיחידי הצדדים יחתום על כל מסמך הקשור בהסכם זה, תחייב חתימתו את יתר יחידי אותו צד.\n\n9. התחייבות המתווך: המתווך מתחייב לפעול בנאמנות, בהגינות ובדרך מקובלת. לשתף מתווכים אחרים במציאת קונים לנכס, ולבצע פעולות לשיווק הנכס כולל שלטים, פרסום יד 2 ופליירים.${excl}${nb}`,
+      he:`1. הלקוח מצהיר בזאת כי הינו המחזיק החוקי ובעל הזכויות המלאות והחוקיות בנכס המקרקעין המתואר לעיל והמהווה חלק בלתי נפרד מהסכם זה (להלן: "הנכס") או שהינו מורשה מטעם בעל/י הזכויות למוכרו ו/או להשכירו ו/או למסרו בדמי מפתח. הלקוח מצהיר כי הובהר לו כי פרטי הנכס יועמדו לידיעת קונים/שוכרים/מתווכים כדי לקדם את שיווק הנכס וכן שפרטי הנכס שמסר למתווך הינם הפרטים המהותיים, הנכונים והמלאים.
+
+2. הלקוח מתחייב להמציא למתווך מידית נסח רישום או אישור זכויות מרשות מקרקעי ישראל ו/או החברה המשכנת, עדכניים.
+
+3. הלקוח ישלם למתווך עבור פעולת התיווך, מיד עם חתימת הסכם מחייב למכירת או השכרת הנכס בשיעורים המפורטים בסעיף 4 להלן.
+
+4. דמי התיווך שהלקוח מתחייב בזה לשלמם בהתאם לאמור בסעיף 3 לעיל ישולמו כדלקמן:
+   4.1 במכירה: ${fs} ממחיר המכירה כקבוע בהסכם המכר של הנכס.
+   4.2 אין באמור לעיל כדי לגרוע מזכותו של המתווך לגבות דמי תיווך מהקונה/שוכר.
+
+5. הלקוח מאשר שהומלץ לו על ידי המתווך להסתייע בשירותי עורך דין ו/או מומחים אחרים לפי העניין והצורך במהלך העסקה.
+
+6. הלקוח מצהיר כי ידוע לו כי דמי התיווך ייגבו ע"י המתווך וכנגד חשבונית מס כחוק מטעם המתווך.
+
+7. שום ויתור, ארכה, הנחה או שינוי בתנאי כלשהוא בהסכם זה, לא יהיו בני תוקף, אלא אם יעשו בכתב. שום איחור בשימוש בזכויותיו של צד כלשהוא לא ייחשב כויתור והוא יהיה רשאי להשתמש בזכויותיו כולן או בכל אחת מהן לחוד, הן לפי הסכם זה והן לפי כל דין, בכל עת שימצא לנכון.
+
+8. יחידי הצדדים יהיו אחראים על פי הסכם זה ביחד ולחוד. כל אימת שאחד מיחידי הצדדים יחתום על כל מסמך, כתב, מכתב, או אישור מכל סוג שהוא בכל עניין ודבר הקשור בהסכם זה, ביצועו או הנובע הימנו, תחייב חתימתו את יתר יחידי אותו צד.
+
+9. התחייבות המתווך: המתווך מתחייב לפעול בנאמנות, בהגינות ובדרך מקובלת. לשתף מתווכים אחרים במציאת קונים לנכס, ולבצע פעולות לשיווק הנכס כולל שלטים, פרסום יד 2 ופליירים.${excl}${nb}`,
       en:`1. The client hereby declares that he is the legal possessor and owner of the full and lawful rights to the real property described above, or is authorized on behalf of the rights owner to sell and/or lease it. The client declares that the property details provided are material, correct and complete.\n\n2. The client undertakes to immediately provide the broker with an up-to-date land registry extract or confirmation of rights.\n\n3. The client shall pay the broker for the brokerage service, immediately upon signing a binding agreement for the sale of the property.\n\n4. Brokerage fees:\n   4.1 In a sale: ${fs} of the sale price as set in the purchase agreement.\n   4.2 The above does not derogate from the broker's right to collect brokerage fees from the buyer.\n\n5. The client confirms that the broker recommended using the services of a lawyer and/or other experts as necessary during the transaction.\n\n6. The client declares that he is aware that brokerage fees will be collected by the broker against a tax invoice as required by law.\n\n7. No waiver, extension, discount or change in any condition of this agreement shall be valid unless made in writing. No delay in exercising any party's rights shall be considered a waiver.\n\n8. The parties' individuals shall be responsible under this agreement jointly and severally. Whenever one of the parties' individuals signs any document related to this agreement, his signature shall bind the other individuals of that party.${nb}`
     },
     'owner-rent':{
@@ -1033,6 +1060,40 @@ function contractText(type,l,d){
 }
 
 let _originalContractText = '';
+let _originalExclText = '';
+
+// Generate exclusivity agreement text
+function exclAgreementText(d, agentName){
+  const serial = 'KJ-'+Date.now().toString().slice(-6);
+  const dateStr = new Date().toLocaleDateString('he-IL');
+  return `הסכם בלעדיות לשיווק נכס
+
+הסכם זה מהווה חלק בלתי נפרד מהזמנת שירותי התיווך מספר ${serial}, שנחתמה בין הצדדים ביום ${dateStr}, ומתייחס לנכס שפרטיו רשומים בהזמנת שירותי התיווך (להלן: "הנכס"), וכן לכל עסקה במקרקעין אחרת שתתבצע על פי הסכם זה.
+
+1. הלקוח מצהיר בזאת כי הינו בעל הזכויות בנכס שכתובתו: ${d.addr}. או כי הינו מורשה מטעם בעל הזכויות בנכס למכרו ו/או להשכירו ו/או למסור בו חזקה.
+
+2. הלקוח מצהיר כי פרטי הנכס שמסר למתווך הינם הפרטים המהותיים, המדויקים והמלאים. כן מצהיר הלקוח כי הובהר לו שפרטי הנכס יועמדו לידיעת קונים, שוכרים ו/או מתווכים אחרים לצורך קידום שיווקו.
+
+3. הלקוח מתחייב להמציא למתווך, מיד עם דרישתו, נסח רישום עדכני או אישור זכויות מתאים, וכן אישורי משכנתא עדכניים. הלקוח מייפה את כוחו של המתווך לפנות ולקבל בשמו את כל המידע הדרוש לשיווק הנכס.
+
+4. הלקוח מזמין מהמתווך שירותי תיווך ומסמיך אותו לפעול עבורו באופן בלעדי לשיווק הנכס לתקופה שמיום ${d.exclFrom} ועד יום ${d.exclTo} (להלן: "תקופת הבלעדיות"). עם סיום תקופת הבלעדיות, יהיה המתווך רשאי להמשיך ולשווק את הנכס שלא בבלעדיות. אם הנכס יימכר או יושכר כתוצאה מפעילות המתווך, יהיה המתווך זכאי לדמי התיווך כמפורט בהסכם התיווך.
+
+5. הלקוח ישלם למתווך את דמי התיווך מיד עם חתימת הסכם מחייב למכירת או השכרת הנכס, בשיעורים המפורטים בהסכם התיווך. דמי התיווך ישולמו בכל אחד מהמקרים הבאים:
+   א. אם ההסכם נחתם במהלך תקופת הבלעדיות, אף אם העסקה בוצעה לכאורה שלא באמצעות המתווך, בכפוף להוראות סעיף 14(ב) לחוק המתווכים במקרקעין.
+   ב. אם ההסכם נחתם לאחר תקופת הבלעדיות עם גורם שנודע לו על הנכס או שהנכס הוצג בפניו במהלך תקופת הבלעדיות.
+
+6. הלקוח מתחייב לשלם את דמי התיווך לפקודת: ${agentName||'Kings Jerusalem Luxury Real Estate'}, כנגד חשבונית מס כדין.
+
+7. מומלץ ללקוח להסתייע בשירותי עורך דין ו/או מומחים אחרים בכל שלבי העסקה.
+
+8. המתווך ירכז את כל הפעולות לשיווק הנכס במהלך תקופת הבלעדיות. הלקוח מתחייב כי בתקופה זו לא יבקש ולא יקבל שירותי תיווך לשיווק הנכס מכל מתווך אחר, וכי כל קשר או משא ומתן בינו לבין מתווכים אחרים ו/או קונים ו/או שוכרים ייעשה אך ורק באמצעות המתווך. הלקוח מצהיר כי במקרה של הפרת התחייבות זו יהיה המתווך זכאי לפיצוי בשיעור דמי התיווך שהיה זכאי להם.
+
+9. הלקוח מתחייב להביא את דבר התקשרותו בהסכם זה לידיעת כל הפונים אליו ישירות, ובפרט מתווכים אחרים, קונים או שוכרים עמם היה בקשר בעבר.
+
+10. המתווך מתחייב לפעול בנאמנות, בהגינות ובדרך מקובלת, לשתף פעולה עם מתווכים אחרים במציאת קונים לנכס, ולבצע פעולות שיווק כולל שלטים, פרסום יד 2 ופליירים.
+
+11. מובן וידוע ללקוח כי במינוי המתווך להיות הגורם הפעיל היחיד שיפעל לקידום מכירת ו/או השכרת הנכס, הרי שכל פנייה ו/או עסקה שתקשר הינה תוצאה של פעילות ויעילות המתווך בלבד, בכפוף לסעיף 14(ב) לחוק המתווכים.`;
+}
 
 function toSign(){
   const d=getFormData();
@@ -1045,21 +1106,105 @@ function toSign(){
     ${d.rentFee!==null&&d.rentFee!==''?`<span class="pill">💰 ${d.rentFee} חודש${d.vatRent?' כולל מע״מ':' + מע״מ'}</span>`:''}
     ${d.exclFrom?`<span class="pill" style="background:#F3E5F5;color:#6A1B9A">✦ בלעדיות ${d.exclFrom}→${d.exclTo}</span>`:''}
   </div>`;
-  // Build plain text (editable) — fees are already substituted by contractText()
+  // Main contract
   const rawText = contractText(formType, lang, d);
   _originalContractText = rawText;
   const ct = document.getElementById('contract-text');
   ct.value = rawText;
   ct.dir = lang==='en' ? 'ltr' : 'rtl';
+  // Exclusivity contract — show only if dates filled
+  const hasExcl = exclOn && d.exclFrom && d.exclTo;
+  const exclCard = document.getElementById('excl-contract-card');
+  const dualNote = document.getElementById('dual-sig-note');
+  if(hasExcl){
+    const rawExcl = exclAgreementText(d, agent?agent.name:'');
+    _originalExclText = rawExcl;
+    document.getElementById('excl-contract-text').value = rawExcl;
+    exclCard.style.display = 'block';
+    dualNote.style.display = 'block';
+  } else {
+    exclCard.style.display = 'none';
+    dualNote.style.display = 'none';
+  }
   clearSig('sig-c','sig-hint');
   showScreen('screen-sign');
   setTimeout(()=>setupCanvas('sig-c',false),100);
 }
 
 function resetContractText(){
-  if(_originalContractText){
-    document.getElementById('contract-text').value = _originalContractText;
+  if(_originalContractText) document.getElementById('contract-text').value = _originalContractText;
+}
+function resetExclText(){
+  if(_originalExclText) document.getElementById('excl-contract-text').value = _originalExclText;
+}
+
+/* ══ MY AGREEMENTS ══ */
+async function showMyAgreements(){
+  showScreen('screen-my-ag');
+  document.getElementById('my-ag-list').innerHTML='<div class="empty">⏳ טוען הסכמים...</div>';
+
+  // Sync from Supabase to get latest (including remotely signed ones)
+  try{
+    const res=await fetch(`${SUPA_URL}/rest/v1/agreements?agent=eq.${encodeURIComponent(agent.name)}&order=created_at.desc&limit=200`,{
+      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
+    });
+    const rows=await res.json();
+    if(rows&&rows.length){
+      rows.forEach(r=>{
+        const idx=agreements.findIndex(a=>String(a.id)===String(r.id));
+        const mapped={
+          id:r.id,type:r.type,typeName:r.type_name,
+          agent:r.agent,agentPhone:r.agent_phone||'',agentLicense:r.agent_license||'',
+          clientName:r.client_name,clientId:r.client_id||'',clientPhone:r.client_phone,
+          addr:r.addr,saleFee:r.sale_fee,rentFee:r.rent_fee,
+          vatSale:r.vat_sale,vatRent:r.vat_rent,notes:r.notes||'',
+          lang:r.lang||'he',excl:r.excl||false,exclFrom:r.excl_from||'',exclTo:r.excl_to||'',
+          sig:r.signature||'',date:r.created_at,dateStr:r.date_str,
+          pendingSign:r.pending_sign||false,
+        };
+        if(idx>=0) agreements[idx]=mapped;
+        else agreements.push(mapped);
+      });
+      save();
+    }
+  }catch(e){console.log('sync err',e);}
+
+  const myAgs=agreements.filter(a=>a.agent===agent.name).slice().reverse();
+  const today=new Date().toLocaleDateString('he-IL');
+  document.getElementById('my-ag-stats').innerHTML=`<div class="stats-row">
+    <div class="stat-card"><div class="stat-num">${myAgs.length}</div><div class="stat-lbl">סה"כ</div></div>
+    <div class="stat-card"><div class="stat-num">${myAgs.filter(a=>a.dateStr===today).length}</div><div class="stat-lbl">היום</div></div>
+    <div class="stat-card"><div class="stat-num">${myAgs.filter(a=>a.sig).length}</div><div class="stat-lbl">חתומים</div></div>
+  </div>`;
+
+  if(!myAgs.length){
+    document.getElementById('my-ag-list').innerHTML='<div class="empty">אין הסכמים עדיין</div>';
+    return;
   }
+  document.getElementById('my-ag-list').innerHTML=myAgs.map(a=>{
+    const[cls,lbl]=TBADGES[a.type]||['t-sale','?'];
+    const signed=a.sig?'✅ נחתם':'⏳ ממתין לחתימה';
+    const signedColor=a.sig?'#2E7D32':'#E65100';
+    return`<div class="lcard">
+      <div class="lrow" onclick="openAgreementView(${JSON.stringify(String(a.id))},'my')">
+        <div style="flex:1">
+          <h4>${a.clientName}</h4>
+          <p>📍 ${a.addr}</p>
+          <p style="font-size:10px;color:var(--gray)">${a.typeName||''}</p>
+          <p style="font-size:10px;color:${signedColor};font-weight:600">${signed}</p>
+          ${a.excl?'<p style="font-size:10px;color:#6A1B9A;font-weight:600">✦ בלעדיות</p>':''}
+        </div>
+        <div class="lmeta">
+          <span class="tbadge ${cls}">${lbl}</span>
+          <span style="font-size:11px;color:var(--gray)">${a.dateStr}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <button class="btn-send-link" style="flex:1" onclick="openAgreementView(${JSON.stringify(String(a.id))},'my')">📄 צפה / חתום</button>
+        <button class="btn-send-link" style="flex:1" onclick="sendRemoteLink(${JSON.stringify(String(a.id))})">📲 וואטסאפ</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 /* ══ PROPERTY DB ══ */
@@ -1270,6 +1415,74 @@ async function saveViewSignature(){
   alert('✅ החתימה נשמרה בהצלחה!');
 }
 
+
+function buildExclPDFHtml(a){
+  const sigSection=a.sig
+    ? `<div style="border-top:1px solid #DDD;padding-top:12px;margin-top:12px"><div style="font-size:9pt;color:#666;margin-bottom:4px">חתימת הלקוח (נוגעת לשני המסמכים):</div><img src="${a.sig}" style="max-width:180px;max-height:60px;display:block;margin-top:6px"></div>`
+    : `<div style="border-top:1px solid #DDD;padding-top:12px;margin-top:12px"><div style="font-size:9pt;color:#666;margin-bottom:4px">חתימת הלקוח (נוגעת לשני המסמכים):</div><div style="height:60px;border-bottom:1px solid #999;width:200px;margin-top:30px"></div></div>`;
+  const body = a.exclContractText || '';
+  return `<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8">
+<style>
+  @page{size:A4;margin:0}*{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Arial',sans-serif;font-size:10pt;color:#222;direction:rtl;width:210mm;min-height:297mm}
+  .page{width:210mm;min-height:297mm;display:flex;flex-direction:column}
+  .hdr{background:#0E0E0E;padding:10px 20px;display:flex;justify-content:space-between;align-items:center}
+  .hdr-logo{height:50px;width:auto}.hdr-contact{font-size:8pt;color:#888;text-align:left}
+  .gold-line{height:2px;background:#B8963E}
+  .body{padding:16px 20px;flex:1}
+  .doc-title{text-align:center;font-size:13pt;font-weight:bold;color:#6A1B9A;margin:10px 0 4px}
+  .doc-date{text-align:center;font-size:9pt;color:#888;margin-bottom:12px}
+  .info-box{background:#F5EDD8;border:1px solid #B8963E;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:9pt;line-height:1.8}
+  .info-box strong{color:#7A5010}
+  .office-box{background:#1A1A1A;color:#CCC;border-radius:6px;padding:8px 14px;margin-bottom:14px;font-size:8pt;line-height:1.7}
+  .office-box strong{color:#B8963E}
+  .contract-body{font-size:9.5pt;line-height:1.9;white-space:pre-wrap;text-align:right;margin-bottom:12px}
+  .ftr{background:#0E0E0E;color:#B8963E;padding:8px 20px;font-size:7.5pt;text-align:center;margin-top:auto}
+  .dual-note{background:#F3E5F5;border:1px solid rgba(106,27,154,0.3);border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:9pt;color:#6A1B9A}
+  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style></head><body>
+<div class="page">
+  <div class="hdr">
+    <img class="hdr-logo" src="${LOGO_DARK}" alt="Kings Jerusalem" style="mix-blend-mode:screen">
+    <div class="hdr-contact">קינג ג׳ורג׳ 52, ירושלים<br>02-9998228</div>
+  </div>
+  <div class="gold-line"></div>
+  <div class="body">
+    <div class="doc-title">✦ הסכם בלעדיות לשיווק נכס</div>
+    <div class="doc-date">תאריך: ${a.dateStr}</div>
+    <div class="info-box">
+      <strong>שם לקוח:</strong> ${a.clientName} &nbsp;&nbsp;
+      <strong>ת.ז.:</strong> ${a.clientId||'—'} &nbsp;&nbsp;
+      <strong>טל׳:</strong> ${a.clientPhone}<br>
+      <strong>נכס:</strong> ${a.addr}<br>
+      <strong>תקופת בלעדיות:</strong> ${a.exclFrom} עד ${a.exclTo}<br>
+      <strong>סוכן מטפל:</strong> ${a.agent}
+    </div>
+    <div class="office-box">
+      <strong>בעל המשרד:</strong> זכריה דיין — Kings Jerusalem &nbsp;|&nbsp;
+      <strong>ת.ז.:</strong> 68532365 &nbsp;|&nbsp;
+      <strong>רישיון תיווך:</strong> 3142656
+    </div>
+    <div class="dual-note">⚠️ הסכם זה מהווה חלק בלתי נפרד מהסכם התיווך. החתימה נוגעת לשני המסמכים כאחד.</div>
+    <div class="contract-body">${body.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+    ${sigSection}
+    <div style="font-size:7.5pt;color:#AAA;text-align:center;margin-top:10px">נחתם דיגיטלית ${a.dateStr} דרך מערכת Kings Jerusalem</div>
+  </div>
+  <div class="ftr">Kings Jerusalem Luxury Real Estate &nbsp;•&nbsp; קינג ג׳ורג׳ 52, ירושלים &nbsp;•&nbsp; 02-9998228</div>
+</div>
+</body></html>`;
+}
+
+function printInIframe(html){
+  const iframe=document.createElement('iframe');
+  iframe.style.cssText='position:fixed;top:-9999px;left:-9999px;width:210mm;height:297mm;border:none';
+  document.body.appendChild(iframe);
+  iframe.contentDocument.open();iframe.contentDocument.write(html);iframe.contentDocument.close();
+  return new Promise(resolve=>{
+    setTimeout(()=>{iframe.contentWindow.focus();iframe.contentWindow.print();setTimeout(()=>{document.body.removeChild(iframe);resolve();},2000);},700);
+  });
+}
+
 function dlViewPDF(){
   const a=agreements.find(x=>String(x.id)===String(viewingAgreementId));
   if(!a)return;
@@ -1347,83 +1560,24 @@ function dlViewPDF(){
   <div class="ftr">Kings Jerusalem Luxury Real Estate &nbsp;•&nbsp; קינג ג׳ורג׳ 52, ירושלים &nbsp;•&nbsp; 02-9998228</div>
 </div>
 </body></html>`;
-  const iframe=document.createElement('iframe');
+    const iframe=document.createElement('iframe');
   iframe.style.cssText='position:fixed;top:-9999px;left:-9999px;width:210mm;height:297mm;border:none';
   document.body.appendChild(iframe);
   iframe.contentDocument.open();iframe.contentDocument.write(html);iframe.contentDocument.close();
-  setTimeout(()=>{iframe.contentWindow.focus();iframe.contentWindow.print();setTimeout(()=>document.body.removeChild(iframe),2000);},800);
+  setTimeout(()=>{
+    iframe.contentWindow.focus();iframe.contentWindow.print();
+    setTimeout(()=>{
+      document.body.removeChild(iframe);
+      // Print excl agreement if exists
+      if(a.excl&&a.exclContractText){
+        setTimeout(async()=>await printInIframe(buildExclPDFHtml(a)),1000);
+      }
+    },2000);
+  },800);
 }
-
-/* ══ SUPABASE AGENT SYNC ══ */
-async function syncAgentFromSupa(agentName){
-  try{
-    const res=await fetch(`${SUPA_URL}/rest/v1/agreements?agent=eq.${encodeURIComponent(agentName)}&order=created_at.desc&limit=200`,{
-      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
-    });
-    const rows=await res.json();
-    if(rows&&rows.length){
-      rows.forEach(r=>{
-        const existing=agreements.findIndex(a=>String(a.id)===String(r.id));
-        const mapped={
-          id:r.id,type:r.type,typeName:r.type_name,
-          agent:r.agent,agentPhone:r.agent_phone||'',agentLicense:r.agent_license||'',
-          clientName:r.client_name,clientId:r.client_id||'',clientPhone:r.client_phone,
-          addr:r.addr,saleFee:r.sale_fee,rentFee:r.rent_fee,
-          vatSale:r.vat_sale,vatRent:r.vat_rent,notes:r.notes||'',
-          lang:r.lang||'he',excl:r.excl||false,exclFrom:r.excl_from||'',exclTo:r.excl_to||'',
-          sig:r.signature||'',date:r.created_at,dateStr:r.date_str,
-          pendingSign:r.pending_sign||false,
-        };
-        if(existing>=0) agreements[existing]=mapped;
-        else agreements.push(mapped);
-      });
-      save();
-    }
-  }catch(e){console.log('agent sync err',e);}
-}
-
-/* ══ MY AGREEMENTS (AGENT VIEW) ══ */
-async function showMyAgreements(){
-  showScreen('screen-my-ag');
-  // Show loading
-  document.getElementById('my-ag-list').innerHTML='<div class="empty">⏳ טוען הסכמים...</div>';
-  // Sync from Supabase first to get latest signatures
-  await syncAgentFromSupa(agent.name);
-  const myAgs=agreements.filter(a=>a.agent===agent.name).slice().reverse();
-  const stats=document.getElementById('my-ag-stats');
-  const today=new Date().toLocaleDateString('he-IL');
-  stats.innerHTML=`<div class="stats-row">
-    <div class="stat-card"><div class="stat-num">${myAgs.length}</div><div class="stat-lbl">סה"כ</div></div>
-    <div class="stat-card"><div class="stat-num">${myAgs.filter(a=>a.dateStr===today).length}</div><div class="stat-lbl">היום</div></div>
-    <div class="stat-card"><div class="stat-num">${new Set(myAgs.map(a=>a.clientId)).size}</div><div class="stat-lbl">לקוחות</div></div>
-  </div>`;
-  const list=document.getElementById('my-ag-list');
-  if(!myAgs.length){list.innerHTML='<div class="empty">אין הסכמים עדיין</div>';return;}
-  list.innerHTML=myAgs.map(a=>{
-    const [cls,lbl]=TBADGES[a.type]||['t-sale','?'];
-    const signed=a.sig?'✅ נחתם':'⏳ ממתין לחתימה';
-    const signedColor=a.sig?'#2E7D32':'#E65100';
-    return `<div class="lcard">
-      <div class="lrow" onclick="showAgreementDetail(${a.id})">
-        <div style="flex:1"><h4>${a.clientName}</h4><p>📍 ${a.addr}</p><p style="font-size:10px;color:var(--gray)">${a.typeName}</p><p style="font-size:10px;color:${signedColor};font-weight:600">${signed}</p></div>
-        <div class="lmeta">
-          <span class="tbadge ${cls}">${lbl}</span>
-          <span style="font-size:11px;color:var(--gray)">${a.dateStr}</span>
-          ${a.excl?'<span style="font-size:9px;color:#6A1B9A">✦ בלעדיות</span>':''}
-        </div>
-      </div>
-      <div style="display:flex;gap:6px;margin-top:6px">
-        <button class="btn-send-link" style="flex:1" onclick="openAgreementView(${a.id},'my')">📄 צפה / חתום</button>
-        <button class="btn-send-link" style="flex:1" onclick="sendRemoteLink(${a.id})">📲 וואטסאפ</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-/* ══ REMOTE SIGNING ══ */
 function sendRemoteLink(agreementId){
-  const a=agreements.find(x=>x.id===agreementId);
-  if(!a)return;
+  const a=agreements.find(x=>String(x.id)===String(agreementId));
+  if(!a){alert('הסכם לא נמצא');return;}
   const link=makeSignLink(a);
   const ph=phoneToWA(a.clientPhone);
   const msg=encodeURIComponent(`שלום ${a.clientName},\n\nהסוכן ${a.agent} מ-Kings Jerusalem Luxury Real Estate שלח לך הסכם תיווך לחתימה דיגיטלית.\n\nנכס: ${a.addr}\n\n✍️ לחתימה:\n${link}\n\nלפרטים: 02-9998228`);
@@ -1627,6 +1781,7 @@ async function submitAgreement(requireSig=true){
   const d=getFormData();
   // Use edited contract text if modified
   const editedText = document.getElementById('contract-text')?.value || contractText(formType,lang,d);
+  const editedExclText = exclOn && d.exclFrom ? (document.getElementById('excl-contract-text')?.value || exclAgreementText(d, agent?agent.name:'')) : null;
   const now=new Date();
   // Save new property details if inline fields were shown
   const newPropFields=document.getElementById('new-prop-fields');
@@ -1655,6 +1810,7 @@ async function submitAgreement(requireSig=true){
     sig,date:now.toISOString(),dateStr:now.toLocaleDateString('he-IL'),
     pendingSign:!sig,
     customText: editedText !== contractText(formType,lang,d) ? editedText : null,
+    exclContractText: editedExclText,
   };
   agreements.push(a);
   const ci=clientsDB.findIndex(c=>c.id===d.id);
@@ -1707,29 +1863,13 @@ function submitQ(){
 }
 
 /* ══ PDF AGREEMENT ══ */
-function dlPDF(){
-  const a=agreements[agreements.length-1];
-  const en=a.lang==='en';
-  const d={name:a.clientName,id:a.clientId,phone:a.clientPhone,addr:a.addr,
-            saleFee:a.saleFee,rentFee:a.rentFee,vatSale:a.vatSale,vatRent:a.vatRent,notes:a.notes||'',exclFrom:a.exclFrom||'',exclTo:a.exclTo||''};
-  const fn=FNAMES[a.type][en?'en':'he'];
-  const body = a.customText || contractText(a.type,a.lang,d);
-
-  // Build an off-screen HTML page and use window.print via iframe
-  const html=buildPDFHtml(a,fn,body,en);
-  const iframe=document.createElement('iframe');
-  iframe.style.cssText='position:fixed;top:-9999px;left:-9999px;width:210mm;height:297mm;border:none';
-  document.body.appendChild(iframe);
-  iframe.contentDocument.open();
-  iframe.contentDocument.write(html);
-  iframe.contentDocument.close();
-  setTimeout(()=>{
-    iframe.contentWindow.focus();
-    iframe.contentWindow.print();
-    setTimeout(()=>document.body.removeChild(iframe),2000);
-  },800);
+async function dlPDF(){
+  const a=agreements[agreements.length-1];if(!a)return;
+  await printInIframe(buildPDFHtml(a));
+  if(a.excl&&a.exclContractText){
+    setTimeout(async()=>await printInIframe(buildExclPDFHtml(a)),1500);
+  }
 }
-
 function buildPDFHtml(a,fn,body,en){
   const dir=en?'ltr':'rtl';
   const align=en?'left':'right';
