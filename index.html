@@ -1065,7 +1065,7 @@ function contractText(type,l,d){
 6. The client confirms that upon the sale of the property, the broker may notify the public that the property has been sold in any manner the broker sees fit.
 7. The client confirms that the broker recommended using the services of a lawyer and/or other experts as necessary and appropriate during the transaction.
 8. No waiver, extension, discount or change in any condition of this agreement shall be valid unless made in writing. No delay in exercising any party's rights shall be considered a waiver.
-9. The parties' individuals shall be responsible under this agreement jointly and severally. Whenever one of the parties' individuals signs any document related to this agreement, his signature shall bind the other individuals of that party.\${nb}`
+9. The parties' individuals shall be responsible under this agreement jointly and severally. Whenever one of the parties' individuals signs any document related to this agreement, his signature shall bind the other individuals of that party.${nb}`
     },
     'renter':{
       he:`${propLine}1. הלקוח מזמין שירותי תיווך מקרקעין מהמתווך, כדי לקבל שירותי תיווך בקשר לנכסים המפורטים לעיל.\n\n2. הלקוח מאשר כי המתווך הציג בפניו את הנכסים המפורטים לעיל, והוא מתחייב לדווח למתווך מיד על כל משא ומתן המתנהל עמו ו/או עם שולחו בקשר לאחד או יותר מהנכסים, וכן מיד עם חתימת הסכם מחייב ו/או התחייבות לביצוע העסקה, המוקדם מביניהם.\n\n3. למען הסר ספק, הלקוח מצהיר כי מובן לו וכי הוא מסכים, כי כל הסכם אשר ייחתם בין הלקוח ו/או מי מטעמו לבין בעל הנכס, יחייב את הלקוח בדמי התיווך כמפורט בסעיף 5 להלן.\n\n4. הלקוח מתחייב לא למסור לגורם כלשהו מידע שקיבל מהמתווך בנוגע לנכסים ומתחייב לפצות את המתווך על כל נזק שייגרם לו באם יפר התחייבות זו.\n\n5. הלקוח מתחייב לשלם למתווך את דמי התיווך כמפורט להלן:\n   5.1 בשכירות: ${fr} בתוספת מע"מ.\n   5.2 דמי התיווך ישולמו למתווך במזומן מיד עם חתימת הסכם מחייב ו/או עם התחייבות לביצוע העסקה, המוקדם מביניהם.\n   5.3 האמור לעיל בא בנוסף לזכותו של המתווך לגבות דמי תיווך מהמשכיר.\n\n6. הלקוח מאשר שהומלץ לו על ידי המתווך להסתייע בשירותי עורך דין ו/או מומחים אחרים לפי העניין והצורך במהלך העסקה.\n\n7. שום ויתור, ארכה, הנחה או שינוי בתנאי כלשהוא בהסכם זה, לא יהיו בני תוקף, אלא אם יעשו בכתב.\n\n8. יחידי הצדדים יהיו אחראים על פי הסכם זה ביחד ולחוד. כל אימת שאחד מיחידי הצדדים יחתום על כל מסמך הקשור בהסכם זה, תחייב חתימתו את יתר יחידי אותו צד.${nb}`,
@@ -1553,6 +1553,12 @@ async function checkRemoteSign(){
         const r=rows[0];
         // If already signed — show success screen instead
         if(r.signature){
+          // Save for potential download
+          window._clientSignedAg={id:r.id,type:r.type,typeName:r.type_name,
+            agent:r.agent,clientName:r.client_name,clientId:r.client_id||'',clientPhone:r.client_phone,
+            addr:r.addr,saleFee:r.sale_fee,rentFee:r.rent_fee,vatSale:r.vat_sale,vatRent:r.vat_rent,
+            notes:r.notes||'',lang:r.lang||'he',excl:r.excl,exclFrom:r.excl_from||'',exclTo:r.excl_to||'',
+            sig:r.signature,dateStr:r.date_str,propPrice:''};
           const nm=r.client_name||'';
           document.getElementById('screen-remote').innerHTML=`
             <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px;text-align:center;background:#F7F5F0">
@@ -1560,8 +1566,9 @@ async function checkRemoteSign(){
                 <svg viewBox="0 0 36 36" fill="none" width="30" height="30"><path d="M7 18L15 26L29 10" stroke="#B8963E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </div>
               <div style="font-family:'Playfair Display',serif;font-size:22px;margin-bottom:8px;color:#0E0E0E">ההסכם נחתם בהצלחה!</div>
-              <div style="font-size:14px;color:#666;line-height:1.7">המסמך כבר נחתם ונשמר במערכת.<br>אין צורך בפעולה נוספת.</div>
-              <div style="margin-top:24px;font-size:11px;color:#AAA">Kings Jerusalem Luxury Real Estate</div>
+              <div style="font-size:14px;color:#666;line-height:1.7">המסמך כבר נחתם ונשמר במערכת.</div>
+              <button onclick="dlClientPDF()" style="margin-top:20px;background:#0E0E0E;border:none;border-radius:12px;padding:14px 24px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;color:#B8963E;cursor:pointer">⬇️ הורד את ההסכם</button>
+              <div style="margin-top:16px;font-size:11px;color:#AAA">Kings Jerusalem Luxury Real Estate</div>
             </div>`;
           return;
         }
