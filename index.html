@@ -1534,6 +1534,15 @@ function sendRemoteLink(agreementId){
   const ph=phoneToWA(a.clientPhone);
   const msg=encodeURIComponent(`שלום ${a.clientName},\n\nהסוכן ${a.agent} מ-Kings Jerusalem Luxury Real Estate שלח לך הסכם תיווך לחתימה דיגיטלית.\n\nנכס: ${a.addr}\n\n✍️ לחתימה:\n${link}\n\nלפרטים: 02-9998228`);
   window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');
+  // After WhatsApp opens, show options
+  setTimeout(()=>{
+    // Flash a brief toast notification instead of navigating away from my-agreements
+    const toast=document.createElement('div');
+    toast.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0E0E0E;color:#B8963E;padding:12px 20px;border-radius:10px;font-family:Heebo,sans-serif;font-size:13px;font-weight:600;z-index:999;border:1px solid #B8963E;white-space:nowrap';
+    toast.textContent='✅ נשלח ל-'+a.clientName;
+    document.body.appendChild(toast);
+    setTimeout(()=>toast.remove(),3000);
+  },800);
 }
 
 async function checkRemoteSign(){
@@ -1959,6 +1968,28 @@ function sendWA(){
   const ph=phoneToWA(a.clientPhone);
   const msg=encodeURIComponent(`שלום ${a.clientName},\n\nהסוכן ${a.agent} מ-Kings Jerusalem Luxury Real Estate שלח לך הסכם תיווך לחתימה דיגיטלית.\n\nנכס: ${a.addr}\nתאריך: ${a.dateStr}\n\n✍️ לחתימה:\n${signLink}\n\nלפרטים: 02-9998228`);
   window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');
+  // After WhatsApp opens, show options
+  setTimeout(()=>showAfterWA(a), 800);
+}
+
+function showAfterWA(a){
+  // Show choice: sign in place or go to dashboard
+  document.getElementById('screen-success').innerHTML=`
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:28px 20px;text-align:center;background:var(--light-gray)">
+      <div style="width:56px;height:56px;background:#0E0E0E;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;border:2px solid #B8963E">
+        <svg viewBox="0 0 36 36" fill="none" width="26" height="26"><path d="M7 18L15 26L29 10" stroke="#B8963E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div style="font-family:'Playfair Display',serif;font-size:18px;margin-bottom:6px;color:var(--black)">נשלח בהצלחה!</div>
+      <div style="font-size:13px;color:var(--gray);margin-bottom:28px;line-height:1.6">ההסכם נשלח ל-${a.clientName}.<br>מה תרצה לעשות עכשיו?</div>
+      <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:280px">
+        <button onclick="openAgreementView('${String(a.id)}','s-dash')" style="background:var(--black);border:none;border-radius:12px;padding:14px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;color:var(--gold-light);cursor:pointer">
+          ✍️ החתם כאן במקום
+        </button>
+        <button onclick="showScreen('screen-dash')" style="background:none;border:1px solid var(--border);border-radius:12px;padding:13px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--gray);cursor:pointer">
+          ← חזור לתפריט הראשי
+        </button>
+      </div>
+    </div>`;
 }
 
 /* ══ PDF QUESTIONNAIRE ══ */
