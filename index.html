@@ -731,6 +731,7 @@ async function syncToSupabase(agreement){
       excl_to: agreement.exclTo||'',
       signature: agreement.sig||'',
       date_str: agreement.dateStr,
+      pending_sign: agreement.pendingSign||false,
     });
     // sync client (upsert)
     const ci = clientsDB.find(c=>c.id===agreement.clientId);
@@ -1162,13 +1163,13 @@ async function showMyAgreements(){
   showScreen('screen-my-ag');
   document.getElementById('my-ag-list').innerHTML='<div class="empty">⏳ טוען הסכמים...</div>';
 
-  // Sync from Supabase to get latest (including remotely signed ones)
+  // Sync from Supabase
   try{
     const res=await fetch(`${SUPA_URL}/rest/v1/agreements?agent=eq.${encodeURIComponent(agent.name)}&order=created_at.desc&limit=200`,{
       headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
     });
     const rows=await res.json();
-    if(rows&&rows.length){
+    if(rows&&!rows.error&&rows.length){
       rows.forEach(r=>{
         const idx=agreements.findIndex(a=>String(a.id)===String(r.id));
         const mapped={
@@ -1185,9 +1186,12 @@ async function showMyAgreements(){
         else agreements.push(mapped);
       });
       save();
+    } else if(rows&&rows.error){
+      console.error('Supabase error:',rows);
     }
   }catch(e){console.log('sync err',e);}
 
+  // Also show locally saved agreements (fallback if Supabase is slow)
   const myAgs=agreements.filter(a=>a.agent===agent.name).slice().reverse();
   const today=new Date().toLocaleDateString('he-IL');
   document.getElementById('my-ag-stats').innerHTML=`<div class="stats-row">
