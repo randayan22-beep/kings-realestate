@@ -236,8 +236,8 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
     <div class="sec-title">כלים</div>
     <div class="type-grid">
       <div class="type-card full" onclick="showMyAgreements()" style="background:var(--gold-pale);border-color:var(--gold)"><div class="type-icon">📂</div><div class="type-name">ההסכמים שלי</div><div class="type-desc">צפה בהסכמים שהחתמת</div></div>
-      <div class="type-card" onclick="showPropDB()" style="background:#EEF4FF;border-color:#99B4FF"><div class="type-icon">🏢</div><div class="type-name">מאגר נכסים</div><div class="type-desc">משותף לכלל הסוכנים</div></div>
-      <div class="type-card" onclick="showClientDB()" style="background:#E8F5E9;border-color:#A5D6A7"><div class="type-icon">👥</div><div class="type-name">מאגר לקוחות</div><div class="type-desc">משותף לכלל הסוכנים</div></div>
+      <div class="type-card" onclick="showPropDB()" style="background:#EEF4FF;border-color:#99B4FF"><div class="type-icon">🏢</div><div class="type-name">מאגר נכסים</div></div>
+      <div class="type-card" onclick="showClientDB()" style="background:#E8F5E9;border-color:#A5D6A7"><div class="type-icon">👥</div><div class="type-name">מאגר לקוחות</div></div>
     </div>
   </div>
 </div>
@@ -639,17 +639,21 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
         </select>
       </div>
       <button onclick="exportExcel('agreements')" class="btn-export">📊 ייצא Excel</button>
+      <button id="del-sel-ags" onclick="deleteSelected('agreement')" class="btn-export" style="background:#FFF5F5;color:#C62828;border-color:#FFCDD2;display:none">🗑 מחק נבחרים</button>
       <div class="list" id="list-agreements"></div>
     </div>
     <div class="tab" id="tab-clients">
       <div class="filter-row"><input class="fsel" type="text" id="s-clients" placeholder="חיפוש לקוח..." oninput="renderClients()" style="flex:2"></div>
       <button onclick="exportExcel('clients')" class="btn-export">📊 ייצא Excel</button>
       <button onclick="openAddModal('client')" class="btn-export" style="background:#0E0E0E;color:var(--gold-light)">+ הוסף לקוח</button>
+      <button id="del-sel-cls" onclick="deleteSelected('client')" class="btn-export" style="background:#FFF5F5;color:#C62828;border-color:#FFCDD2;display:none">🗑 מחק נבחרים</button>
       <div class="list" id="list-clients"></div>
     </div>
     <div class="tab" id="tab-properties">
       <div class="filter-row"><input class="fsel" type="text" id="s-props" placeholder="חיפוש נכס..." oninput="renderProperties()" style="flex:2"></div>
       <button onclick="exportExcel('properties')" class="btn-export">📊 ייצא Excel</button>
+      <button onclick="openAddModal('property')" class="btn-export" style="background:#0E0E0E;color:var(--gold-light)">+ הוסף נכס</button>
+      <button id="del-sel-props" onclick="deleteSelected('property')" class="btn-export" style="background:#FFF5F5;color:#C62828;border-color:#FFCDD2;display:none">🗑 מחק נבחרים</button>
       <div class="list" id="list-properties"></div>
     </div>
     <div class="tab" id="tab-agents">
@@ -666,15 +670,15 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
 const MGR_PWD = 'kings2024';
 const OFFICE = {name:'Kings Jerusalem Luxury Real Estate',id:'68532365',addr:'קינג ג׳ורג׳ 52, ירושלים',license:'3142656',phone:'02-9998228'};
 const AGENTS = [
-  {name:'גולדי',nameEn:'Goldi',phone:'',license:''},
-  {name:'יהונתן',nameEn:'Yehonatan',phone:'',license:''},
-  {name:'רן',nameEn:'Ran',phone:'',license:''},
-  {name:'אריאל',nameEn:'Ariel',phone:'',license:''},
-  {name:'אליהו',nameEn:'Eliyahu',phone:'',license:''},
-  {name:'רפי',nameEn:'Rafi',phone:'',license:''},
-  {name:'צבי',nameEn:'Tzvi',phone:'',license:''},
-  {name:'טובה',nameEn:'Tova',phone:'',license:''},
-  {name:'אילן',nameEn:'Ilan',phone:'',license:''},
+  {name:'גולדי',nameEn:'Goldi',phone:'',id:'',license:''},
+  {name:'יהונתן',nameEn:'Yehonatan',phone:'',id:'',license:''},
+  {name:'רן',nameEn:'Ran',phone:'',id:'',license:''},
+  {name:'אריאל',nameEn:'Ariel',phone:'',id:'',license:''},
+  {name:'אליהו',nameEn:'Eliyahu',phone:'',id:'',license:''},
+  {name:'רפי',nameEn:'Rafi',phone:'',id:'',license:''},
+  {name:'צבי',nameEn:'Tzvi',phone:'',id:'',license:''},
+  {name:'טובה',nameEn:'Tova',phone:'',id:'',license:''},
+  {name:'אילן',nameEn:'Ilan',phone:'',id:'',license:''},
 ];
 const FNAMES = {
   'owner-sale':{he:'הסכם תיווך — בעל נכס (מכירה)',en:'Brokerage Agreement — Property Owner (Sale)'},
@@ -1286,7 +1290,7 @@ function renderClientDB(){
   if(q) list=list.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.id||'').includes(q)||(c.phone||'').includes(q));
   const el=document.getElementById('client-db-list');
   if(!list.length){el.innerHTML='<div class="empty">אין לקוחות במאגר</div>';return;}
-  el.innerHTML=`<div style="font-size:10px;color:var(--gray);margin-bottom:8px;text-align:center">📋 ${list.length} לקוחות — משותף לכלל הסוכנים</div>`+
+  el.innerHTML=
   list.map(c=>{
     const cnt=agreements.filter(a=>a.clientId===c.id).length;
     return`<div class="lcard">
@@ -1362,37 +1366,44 @@ function renderPropDB(){
 let _editPropAddr='';
 function openEditProp(addr){
   _editPropAddr=addr;
-  const p=propsDB.find(x=>x.addr===addr);
-  if(!p)return;
-  document.getElementById('ep-addr').value=p.addr||'';
-  document.getElementById('ep-price').value=p.price||'';
-  document.getElementById('ep-size').value=p.size||'';
-  document.getElementById('ep-notes').value=p.notes||'';
-  const exclOn=p.exclOn||false;
+  const p=addr==='__new__'?null:propsDB.find(x=>x.addr===addr);
+  document.getElementById('ep-addr').value=p?p.addr:'';
+  document.getElementById('ep-price').value=p?p.price||'':'';
+  document.getElementById('ep-size').value=p?p.size||'':'';
+  document.getElementById('ep-notes').value=p?p.notes||'':'';
+  const exclOn=p?p.exclOn||false:false;
   const tog=document.getElementById('ep-excl-tog');
   const dates=document.getElementById('ep-excl-dates');
   exclOn?tog.classList.add('on'):tog.classList.remove('on');
   exclOn?dates.classList.add('open'):dates.classList.remove('open');
-  document.getElementById('ep-excl-from').value=p.exclFrom||'';
-  document.getElementById('ep-excl-to').value=p.exclTo||'';
+  document.getElementById('ep-excl-from').value=p?p.exclFrom||'':'';
+  document.getElementById('ep-excl-to').value=p?p.exclTo||'':'';
   document.getElementById('edit-prop-modal').classList.add('open');
 }
 function savePropEdit(){
   const newAddr=document.getElementById('ep-addr').value.trim();
   if(!newAddr){alert('נא למלא כתובת');return;}
-  const pi=propsDB.findIndex(p=>p.addr===_editPropAddr);
-  if(pi<0)return;
   const exclOn=document.getElementById('ep-excl-tog').classList.contains('on');
-  propsDB[pi].addr=newAddr;
-  propsDB[pi].price=document.getElementById('ep-price').value.trim();
-  propsDB[pi].size=document.getElementById('ep-size').value.trim();
-  propsDB[pi].notes=document.getElementById('ep-notes').value.trim();
-  propsDB[pi].exclOn=exclOn;
-  propsDB[pi].exclFrom=document.getElementById('ep-excl-from').value;
-  propsDB[pi].exclTo=document.getElementById('ep-excl-to').value;
+  const entry={
+    addr:newAddr,
+    price:document.getElementById('ep-price').value.trim(),
+    size:document.getElementById('ep-size').value.trim(),
+    notes:document.getElementById('ep-notes').value.trim(),
+    exclOn,
+    exclFrom:document.getElementById('ep-excl-from').value,
+    exclTo:document.getElementById('ep-excl-to').value,
+  };
+  if(_editPropAddr==='__new__'||!_editPropAddr){
+    propsDB.push({...entry,cnt:0,agents:[],seen:new Date().toISOString()});
+  } else {
+    const pi=propsDB.findIndex(p=>p.addr===_editPropAddr);
+    if(pi>=0) Object.assign(propsDB[pi],entry);
+  }
   save();
   document.getElementById('edit-prop-modal').classList.remove('open');
-  renderPropDB();
+  if(document.getElementById('screen-propdb')?.classList.contains('active')) renderPropDB();
+  else renderProperties();
+  refreshMgrStats();
 }
 
 /* ══ AGREEMENT VIEW ══ */
@@ -2022,6 +2033,7 @@ function buildPDFHtml(a){
       ${(a.propPrice)?('<strong>'+(en?'Price':'מחיר')+':</strong> ₪'+a.propPrice+'<br>'):''}
       ${feeLines.length?feeLines.join(' &nbsp;&nbsp; ')+'<br>':''}
       ${en?'<strong>Agent:</strong>':'<strong>סוכן מטפל:</strong>'} ${en?(a.agentEn||a.agent):a.agent}
+      ${(()=>{const ag=AGENTS.find(x=>x.name===a.agent);const lid=ag?.id??(a.agentId||'');const lic=ag?.license??(a.agentLicense||'');const parts=[];if(lid)parts.push((en?'ID: ':'ת.ז.: ')+lid);if(lic)parts.push((en?'License: ':'רישיון: ')+lic);return parts.length?'<br>'+parts.join(' &nbsp;&nbsp; '):'';})()}
     </div>
     <div class="off">${en?'<strong>Broker:</strong> Zachariah Dayan — Kings Jerusalem &nbsp;|&nbsp; <strong>ID:</strong> 68532365 &nbsp;|&nbsp; <strong>License:</strong> 3142656':'<strong>בעל המשרד:</strong> זכריה דיין — Kings Jerusalem &nbsp;|&nbsp; <strong>ת.ז.:</strong> 68532365 &nbsp;|&nbsp; <strong>רישיון:</strong> 3142656'}</div>
     <div class="ct">${body.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
@@ -2186,6 +2198,38 @@ function dlQPDF(q){
   },800);
 }
 
+/* ══ BULK SELECT & DELETE ══ */
+let _selected = {agreement:new Set(), client:new Set(), property:new Set()};
+
+function toggleSelect(type, id, cb){
+  if(cb.checked) _selected[type].add(id);
+  else _selected[type].delete(id);
+  const delBtn = document.getElementById(`del-sel-${type==='agreement'?'ags':type==='client'?'cls':'props'}`);
+  if(delBtn) delBtn.style.display = _selected[type].size>0 ? 'inline-block' : 'none';
+}
+
+function deleteSelected(type){
+  if(_selected[type].size===0) return;
+  if(!confirm(`למחוק ${_selected[type].size} פריטים?`)) return;
+  if(type==='agreement') agreements=agreements.filter(a=>!_selected[type].has(String(a.id)));
+  else if(type==='client') clientsDB=clientsDB.filter(c=>!_selected[type].has(c.id||c.name));
+  else if(type==='property') propsDB=propsDB.filter(p=>!_selected[type].has(p.addr));
+  _selected[type].clear();
+  save(); refreshMgrStats();
+  if(type==='agreement') renderAgreements();
+  else if(type==='client') renderClients();
+  else renderProperties();
+}
+
+function refreshMgrStats(){
+  const today=new Date().toLocaleDateString('he-IL');
+  const el=document.getElementById('mgr-stats');
+  if(!el) return;
+  el.innerHTML=`<div class="stat-card"><div class="stat-num">${agreements.length}</div><div class="stat-lbl">הסכמים</div></div>
+    <div class="stat-card"><div class="stat-num">${agreements.filter(a=>a.dateStr===today).length}</div><div class="stat-lbl">היום</div></div>
+    <div class="stat-card"><div class="stat-num">${clientsDB.length}</div><div class="stat-lbl">לקוחות</div></div>`;
+}
+
 /* ══ EXCEL EXPORT ══ */
 function exportExcel(type){
   let rows=[], headers=[], filename='';
@@ -2224,6 +2268,7 @@ function openAddModal(type){
   _editType=type; _editId='';
   if(type==='client') showEditModal('client','','','','');
   else if(type==='agent') showEditModal('agent','','','');
+  else if(type==='property') openEditProp('__new__');
 }
 
 function showEditModal(type, f1, f2, f3, f4){
@@ -2238,7 +2283,9 @@ function showEditModal(type, f1, f2, f3, f4){
   } else if(type==='agent'){
     title=_editId?'✏️ עריכת סוכן':'+ סוכן חדש';
     fields=`<div class="fg"><label class="fl">שם בעברית *</label><input class="fi" id="em-f1" value="${f1}"></div>
-      <div class="fg"><label class="fl">שם באנגלית</label><input class="fi" id="em-f2" value="${f2}"></div>`;
+      <div class="fg"><label class="fl">שם באנגלית</label><input class="fi" id="em-f2" value="${f2}"></div>
+      <div class="fg"><label class="fl">תעודת זהות</label><input class="fi" id="em-f3" value="${f3}" inputmode="numeric" maxlength="9"></div>
+      <div class="fg"><label class="fl">מספר רישיון</label><input class="fi" id="em-f4" value="${f4||''}"></div>`;
   }
   const modal=document.createElement('div');
   modal.id='mgr-edit-modal';
@@ -2268,11 +2315,13 @@ function saveMgrEdit(){
     }
     save(); document.getElementById('mgr-edit-modal').remove(); renderClients();
   } else if(_editType==='agent'){
+    const f3=(document.getElementById('em-f3')?.value||'').trim();
+    const f4=(document.getElementById('em-f4')?.value||'').trim();
     if(_editId){
       const idx=AGENTS.findIndex(a=>a.name===_editId);
-      if(idx>=0){AGENTS[idx].name=f1;AGENTS[idx].nameEn=f2;}
+      if(idx>=0){AGENTS[idx].name=f1;AGENTS[idx].nameEn=f2;AGENTS[idx].id=f3;AGENTS[idx].license=f4;}
     } else {
-      AGENTS.push({name:f1,nameEn:f2,phone:'',license:''});
+      AGENTS.push({name:f1,nameEn:f2,phone:'',id:f3,license:f4});
     }
     document.getElementById('mgr-edit-modal').remove(); renderAgents();
   }
@@ -2280,9 +2329,10 @@ function saveMgrEdit(){
 
 function deleteItem(type, id){
   if(!confirm('למחוק?')) return;
-  if(type==='client'){clientsDB=clientsDB.filter(c=>c.id!==id);save();renderClients();}
+  if(type==='client'){clientsDB=clientsDB.filter(c=>(c.id||c.name)!==id);save();renderClients();}
   else if(type==='agreement'){agreements=agreements.filter(a=>String(a.id)!==String(id));save();renderAgreements();}
   else if(type==='property'){propsDB=propsDB.filter(p=>p.addr!==id);save();renderProperties();}
+  refreshMgrStats();
 }
 
 function editClient(id){
@@ -2293,11 +2343,13 @@ function editClient(id){
 function editAgent(name){
   _editType='agent'; _editId=name;
   const a=AGENTS.find(x=>x.name===name);if(!a)return;
-  showEditModal('agent',a.name,a.nameEn||'','');
+  showEditModal('agent',a.name,a.nameEn||'',a.id||'',a.license||'');
 }
 
 /* ══ MANAGER RENDER FUNCTIONS ══ */
 function renderAgreements(){
+  _selected.agreement.clear();
+  const delBtn=document.getElementById('del-sel-ags');if(delBtn)delBtn.style.display='none';
   const fa=document.getElementById('fil-agent').value;
   const ft=document.getElementById('fil-type').value;
   let list=[...agreements].reverse();
@@ -2307,33 +2359,45 @@ function renderAgreements(){
   if(!list.length){el.innerHTML='<div class="empty">אין הסכמים</div>';return;}
   el.innerHTML=list.map(a=>{
     const[cls,lbl]=TBADGES[a.type]||['t-sale','?'];
+    const sid=String(a.id);
     return`<div class="lcard">
-      <div class="lrow" onclick="openAgreementView('${String(a.id)}','screen-mgr')">
-        <div><h4>${a.clientName}</h4><p>📍 ${a.addr}</p><p>👤 ${a.agent} · ${a.dateStr}</p></div>
+      <div class="lrow">
+        <label style="display:flex;align-items:flex-start;gap:8px;flex:1;cursor:pointer">
+          <input type="checkbox" style="margin-top:3px;accent-color:var(--gold)" onchange="toggleSelect('agreement','${sid}',this)">
+          <div onclick="openAgreementView('${sid}','screen-mgr')" style="flex:1">
+            <h4>${a.clientName}</h4><p>📍 ${a.addr}</p><p>👤 ${a.agent} · ${a.dateStr}</p>
+          </div>
+        </label>
         <div class="lmeta"><span class="tbadge ${cls}">${lbl}</span>${a.sig?'<span style="font-size:9px;color:#2E7D32">✅</span>':'<span style="font-size:9px;color:#E65100">⏳</span>'}</div>
       </div>
       <div style="display:flex;gap:6px;margin-top:6px">
-        <button class="btn-edit-sm" onclick="openAgreementView('${String(a.id)}','screen-mgr')">📄 צפה</button>
-        <button class="btn-del" onclick="deleteItem('agreement','${String(a.id)}')">🗑 מחק</button>
+        <button class="btn-edit-sm" onclick="openAgreementView('${sid}','screen-mgr')">📄 צפה</button>
+        <button class="btn-del" onclick="deleteItem('agreement','${sid}')">🗑 מחק</button>
       </div>
     </div>`;
   }).join('');
 }
 
 function renderClients(){
+  _selected.client.clear();
+  const delBtn=document.getElementById('del-sel-cls');if(delBtn)delBtn.style.display='none';
   const q=(document.getElementById('s-clients')?.value||'').toLowerCase();
-  let list=[...clientsDB].sort((a,b)=>a.name.localeCompare(b.name));
-  if(q)list=list.filter(c=>c.name.toLowerCase().includes(q)||(c.id||'').includes(q));
+  let list=[...clientsDB].sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
+  if(q)list=list.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.id||'').includes(q));
   const el=document.getElementById('list-clients');
   if(!list.length){el.innerHTML='<div class="empty">אין לקוחות</div>';return;}
   el.innerHTML=list.map(c=>{
     const cnt=agreements.filter(a=>a.clientId===c.id).length;
+    const key=c.id||c.name;
     return`<div class="lcard">
       <div class="lrow">
-        <div><h4>${c.name}</h4><p>🪪 ${c.id||'—'} · 📞 ${c.phone}</p><p style="font-size:10px;color:var(--gray)">${cnt} הסכמים</p></div>
+        <label style="display:flex;align-items:flex-start;gap:8px;flex:1;cursor:pointer">
+          <input type="checkbox" style="margin-top:3px;accent-color:var(--gold)" onchange="toggleSelect('client','${key}',this)">
+          <div><h4>${c.name}</h4><p>🪪 ${c.id||'—'} · 📞 ${c.phone||'—'}</p><p style="font-size:10px;color:var(--gray)">${cnt} הסכמים</p></div>
+        </label>
         <div class="lmeta" style="display:flex;flex-direction:column;gap:4px">
-          <button class="btn-edit-sm" onclick="editClient('${c.id}')">✏️ עריכה</button>
-          <button class="btn-del" onclick="deleteItem('client','${c.id}')">🗑 מחק</button>
+          <button class="btn-edit-sm" onclick="editClient('${c.id}')">✏️</button>
+          <button class="btn-del" onclick="deleteItem('client','${key}')">🗑</button>
         </div>
       </div>
     </div>`;
@@ -2341,6 +2405,8 @@ function renderClients(){
 }
 
 function renderProperties(){
+  _selected.property.clear();
+  const delBtn=document.getElementById('del-sel-props');if(delBtn)delBtn.style.display='none';
   const q=(document.getElementById('s-props')?.value||'').toLowerCase();
   let list=[...propsDB].sort((a,b)=>(b.cnt||0)-(a.cnt||0));
   if(q)list=list.filter(p=>p.addr.toLowerCase().includes(q));
@@ -2348,14 +2414,18 @@ function renderProperties(){
   if(!list.length){el.innerHTML='<div class="empty">אין נכסים</div>';return;}
   el.innerHTML=list.map(p=>`<div class="lcard">
     <div class="lrow">
-      <div><h4>📍 ${p.addr}</h4>${p.price?`<p>💰 ${p.price}</p>`:''}${p.size?`<p>📐 ${p.size} מ"ר</p>`:''}${p.exclOn?`<p style="color:#6A1B9A;font-size:10px">✦ בלעדיות</p>`:''}<p style="font-size:10px;color:var(--gray)">שימוש: ${p.cnt||0} פעם</p></div>
+      <label style="display:flex;align-items:flex-start;gap:8px;flex:1;cursor:pointer">
+        <input type="checkbox" style="margin-top:3px;accent-color:var(--gold)" onchange="toggleSelect('property','${p.addr.replace(/'/g,"\\'")}',this)">
+        <div><h4>📍 ${p.addr}</h4>${p.price?`<p>💰 ${p.price}</p>`:''}${p.size?`<p>📐 ${p.size} מ"ר</p>`:''}${p.exclOn?`<p style="color:#6A1B9A;font-size:10px">✦ בלעדיות</p>`:''}<p style="font-size:10px;color:var(--gray)">שימוש: ${p.cnt||0} פעם</p></div>
+      </label>
       <div class="lmeta" style="display:flex;flex-direction:column;gap:4px">
-        <button class="btn-edit-sm" onclick="openEditProp('${p.addr.replace(/'/g,"\\'")}')">✏️ עריכה</button>
-        <button class="btn-del" onclick="deleteItem('property','${p.addr.replace(/'/g,"\\'")}')">🗑 מחק</button>
+        <button class="btn-edit-sm" onclick="openEditProp('${p.addr.replace(/'/g,"\\'")}')">✏️</button>
+        <button class="btn-del" onclick="deleteItem('property','${p.addr.replace(/'/g,"\\'")}')">🗑</button>
       </div>
     </div>
   </div>`).join('');
 }
+
 
 function renderAgents(){
   const max=Math.max(...AGENTS.map(ag=>agreements.filter(a=>a.agent===ag.name).length),1);
@@ -2366,6 +2436,8 @@ function renderAgents(){
       <div class="lrow">
         <div style="flex:1">
           <h4>👤 ${ag.name} <span style="color:var(--gray);font-size:11px;font-weight:400">${ag.nameEn||''}</span></h4>
+          ${ag.id?`<p style="font-size:10px">🪪 ${ag.id}</p>`:''}
+          ${ag.license?`<p style="font-size:10px">📋 רישיון: ${ag.license}</p>`:''}
           <p>${ags.length} הסכמים · ${new Set(ags.map(a=>a.clientId)).size} לקוחות</p>
           <div class="pbar"><div class="pbf" style="width:${pct}%"></div></div>
         </div>
