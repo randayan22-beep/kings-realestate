@@ -167,7 +167,9 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
 .btn-modal-ok{flex:1;background:var(--black);border:none;border-radius:8px;padding:12px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;color:var(--gold-light);cursor:pointer}
 .btn-modal-cancel{background:none;border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer;color:var(--gray)}
 /* SEND LINK */
-.btn-send-link{background:var(--gold-pale);border:1px solid var(--gold);border-radius:8px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:11px;font-weight:600;color:#7A5010;cursor:pointer;white-space:nowrap;display:block;width:100%;margin-top:6px;text-align:center}
+.btn-export{background:var(--gold-pale);border:1px solid var(--gold);border-radius:8px;padding:7px 12px;font-family:'Heebo',sans-serif;font-size:11px;font-weight:600;color:#7A5010;cursor:pointer;margin-bottom:8px;margin-left:4px}
+.btn-del{background:#FFF5F5;border:1px solid #FFCDD2;border-radius:6px;padding:4px 8px;font-size:10px;color:#C62828;cursor:pointer;font-family:'Heebo',sans-serif}
+.btn-edit-sm{background:var(--gold-pale);border:1px solid var(--gold);border-radius:6px;padding:4px 8px;font-size:10px;color:#7A5010;cursor:pointer;font-family:'Heebo',sans-serif}border-radius:8px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:11px;font-weight:600;color:#7A5010;cursor:pointer;white-space:nowrap;display:block;width:100%;margin-top:6px;text-align:center}
 /* REMOTE SIGN */
 #screen-remote{background:var(--light-gray)}
 .remote-body{padding:20px 16px;flex:1}
@@ -623,17 +625,25 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
           <option value="renter">שוכר</option><option value="both-client">מתעניין משולב</option>
         </select>
       </div>
+      <button onclick="exportExcel('agreements')" class="btn-export">📊 ייצא Excel</button>
       <div class="list" id="list-agreements"></div>
     </div>
     <div class="tab" id="tab-clients">
       <div class="filter-row"><input class="fsel" type="text" id="s-clients" placeholder="חיפוש לקוח..." oninput="renderClients()" style="flex:2"></div>
+      <button onclick="exportExcel('clients')" class="btn-export">📊 ייצא Excel</button>
+      <button onclick="openAddModal('client')" class="btn-export" style="background:#0E0E0E;color:var(--gold-light)">+ הוסף לקוח</button>
       <div class="list" id="list-clients"></div>
     </div>
     <div class="tab" id="tab-properties">
       <div class="filter-row"><input class="fsel" type="text" id="s-props" placeholder="חיפוש נכס..." oninput="renderProperties()" style="flex:2"></div>
+      <button onclick="exportExcel('properties')" class="btn-export">📊 ייצא Excel</button>
       <div class="list" id="list-properties"></div>
     </div>
-    <div class="tab" id="tab-agents"><div class="list" id="list-agents"></div></div>
+    <div class="tab" id="tab-agents">
+      <button onclick="exportExcel('agents')" class="btn-export">📊 ייצא Excel</button>
+      <button onclick="openAddModal('agent')" class="btn-export" style="background:#0E0E0E;color:var(--gold-light)">+ הוסף סוכן</button>
+      <div class="list" id="list-agents"></div>
+    </div>
   </div>
 </div>
 
@@ -643,15 +653,15 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
 const MGR_PWD = 'kings2024';
 const OFFICE = {name:'Kings Jerusalem Luxury Real Estate',id:'68532365',addr:'קינג ג׳ורג׳ 52, ירושלים',license:'3142656',phone:'02-9998228'};
 const AGENTS = [
-  {name:'גולדי',phone:'',license:''},
-  {name:'יהונתן',phone:'',license:''},
-  {name:'רן',phone:'',license:''},
-  {name:'אריאל',phone:'',license:''},
-  {name:'אליהו',phone:'',license:''},
-  {name:'רפי',phone:'',license:''},
-  {name:'צבי',phone:'',license:''},
-  {name:'טובה',phone:'',license:''},
-  {name:'אילן',phone:'',license:''},
+  {name:'גולדי',nameEn:'Goldi',phone:'',license:''},
+  {name:'יהונתן',nameEn:'Yehonatan',phone:'',license:''},
+  {name:'רן',nameEn:'Ran',phone:'',license:''},
+  {name:'אריאל',nameEn:'Ariel',phone:'',license:''},
+  {name:'אליהו',nameEn:'Eliyahu',phone:'',license:''},
+  {name:'רפי',nameEn:'Rafi',phone:'',license:''},
+  {name:'צבי',nameEn:'Tzvi',phone:'',license:''},
+  {name:'טובה',nameEn:'Tova',phone:'',license:''},
+  {name:'אילן',nameEn:'Ilan',phone:'',license:''},
 ];
 const FNAMES = {
   'owner-sale':{he:'הסכם תיווך — בעל נכס (מכירה)',en:'Brokerage Agreement — Property Owner (Sale)'},
@@ -1533,7 +1543,10 @@ function sendRemoteLink(agreementId){
   if(!a){alert('הסכם לא נמצא');return;}
   const link=makeSignLink(a);
   const ph=phoneToWA(a.clientPhone);
-  const msg=encodeURIComponent(`שלום ${a.clientName},\n\nהסוכן ${a.agent} מ-Kings Jerusalem Luxury Real Estate שלח לך הסכם תיווך לחתימה דיגיטלית.\n\nנכס: ${a.addr}\n\n✍️ לחתימה:\n${link}\n\nלפרטים: 02-9998228`);
+  const isEnR=(a.lang==='en');
+  const msg=encodeURIComponent(isEnR
+    ? `Hello ${a.clientName},\n\nAgent ${a.agentEn||a.agent} from Kings Jerusalem has sent you a brokerage agreement for signing.\n\n✍🏻 Sign here:\n${link}`
+    : `שלום ${a.clientName},\n\nהסוכן ${a.agent} מ-Kings Jerusalem שלח לך הסכם תיווך לחתימה.\n\n✍🏻 לחתימה:\n${link}`);
   window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');
   // After WhatsApp opens, show options
   setTimeout(()=>{
@@ -1844,7 +1857,10 @@ async function submitAgreement(requireSig=true){
 
   const signLink=makeSignLink(a);
   const ph=phoneToWA(d.phone);
-  const msg=encodeURIComponent(`שלום ${d.name},\n\nהסוכן ${agent.name} מ-Kings Jerusalem Luxury Real Estate שלח לך הסכם תיווך לחתימה דיגיטלית.\n\nנכס: ${d.addr}\nתאריך: ${a.dateStr}\n\n✍️ לחתימה:\n${signLink}\n\nלפרטים: 02-9998228`);
+  const isEnMsg=(a.lang==='en');
+  const msgHe=`שלום ${d.name},\n\nהסוכן ${agent.name} מ-Kings Jerusalem שלח לך הסכם תיווך לחתימה דיגיטלית.\n\n✍🏻 לחתימה:\n${signLink}`;
+  const msgEn=`Hello ${d.name},\n\nAgent ${a.agentEn||agent.name} from Kings Jerusalem has sent you a brokerage agreement for digital signing.\n\n✍🏻 Sign here:\n${signLink}`;
+  const msg=encodeURIComponent(isEnMsg?msgEn:msgHe);
   document.getElementById('wa-btn').href=`https://wa.me/${ph}?text=${msg}`;
   document.getElementById('wa-btn').style.opacity='1';
   document.getElementById('wa-btn').style.pointerEvents='auto';
@@ -1905,10 +1921,14 @@ function buildPDFHtml(a){
   const body=a.customText||contractText(a.type,a.lang||'he',d);
   const notesLine=a.notes?`<div style="background:#F0F4FF;border:1px solid #B0C4FF;border-radius:4px;padding:8px 12px;margin-bottom:10px;font-size:9pt"><strong>הערות:</strong> ${a.notes}</div>`:'';
   const feeLines=[];
-  if(a.saleFee!==null&&a.saleFee!==undefined&&a.saleFee!=='') feeLines.push(`<strong>עמלת מכירה:</strong> ${a.saleFee}%${a.vatSale?' (כולל מע"מ)':' + מע"מ'}`);
-  if(a.rentFee!==null&&a.rentFee!==undefined&&a.rentFee!=='') feeLines.push(`<strong>עמלת שכ"ד:</strong> ${a.rentFee} חודש${a.vatRent?' (כולל מע"מ)':' + מע"מ'}`);
+  if(a.saleFee!==null&&a.saleFee!==undefined&&a.saleFee!=='') feeLines.push(en
+    ? `<strong>Sale Commission:</strong> ${a.saleFee}%${a.vatSale?' (VAT incl.)':' + VAT'}`
+    : `<strong>עמלת מכירה:</strong> ${a.saleFee}%${a.vatSale?' (כולל מע"מ)':' + מע"מ'}`);
+  if(a.rentFee!==null&&a.rentFee!==undefined&&a.rentFee!=='') feeLines.push(en
+    ? `<strong>Rental Commission:</strong> ${a.rentFee} month${a.vatRent?' (VAT incl.)':' + VAT'}`
+    : `<strong>עמלת שכ"ד:</strong> ${a.rentFee} חודש${a.vatRent?' (כולל מע"מ)':' + מע"מ'}`);
   const sigImg=a.sig?`<img src="${a.sig}" style="max-width:200px;max-height:65px;display:block;margin-top:8px">`:'<div style="height:65px;border-bottom:1px solid #999;width:220px;margin-top:30px"></div>';
-  const dualNote=a.excl&&a.exclContractText?'<div style="background:#F3E5F5;border:1px solid rgba(106,27,154,0.3);border-radius:5px;padding:7px 12px;margin-bottom:10px;font-size:8.5pt;color:#6A1B9A">⚠️ החתימה הינה נוגעת לשני המסמכים — הסכם התיווך והסכם הבלעדיות כאחד.</div>':'';
+  const dualNote=a.excl&&a.exclContractText?`<div style="background:#F3E5F5;border:1px solid rgba(106,27,154,0.3);border-radius:5px;padding:7px 12px;margin-bottom:10px;font-size:8.5pt;color:#6A1B9A">⚠️ ${en?'This signature applies to both documents — the brokerage agreement and the exclusivity agreement.':'החתימה הינה נוגעת לשני המסמכים — הסכם התיווך והסכם הבלעדיות כאחד.'}</div>`:'';;
   const styles=`<style>
   @page{size:A4;margin:0}*{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Arial','David','Helvetica',sans-serif;font-size:10pt;color:#222;direction:${dir};width:210mm;min-height:297mm}
@@ -1938,24 +1958,24 @@ function buildPDFHtml(a){
   <div class="gold"></div>
   <div class="body">
     <div class="title">${fn}</div>
-    <div class="date">תאריך: ${a.dateStr}</div>
+    <div class="date">${en?'Date:':'תאריך:'} ${a.dateStr}</div>
     <div class="info">
-      <strong>שם לקוח:</strong> ${a.clientName} &nbsp;&nbsp;
-      <strong>ת.ז.:</strong> ${a.clientId||'—'} &nbsp;&nbsp;
-      <strong>טל׳:</strong> ${a.clientPhone}<br>
-      <strong>נכס:</strong> ${a.addr}<br>
-      ${(a.propPrice)?'<strong>מחיר:</strong> ₪'+a.propPrice+'<br>':''}
+      ${en?'<strong>Client Name:</strong>':'<strong>שם לקוח:</strong>'} ${a.clientName} &nbsp;&nbsp;
+      ${en?'<strong>ID:</strong>':'<strong>ת.ז.:</strong>'} ${a.clientId||'—'} &nbsp;&nbsp;
+      ${en?'<strong>Phone:</strong>':'<strong>טל׳:</strong>'} ${a.clientPhone}<br>
+      ${en?'<strong>Property:</strong>':'<strong>נכס:</strong>'} ${a.addr}<br>
+      ${(a.propPrice)?('<strong>'+(en?'Price':'מחיר')+':</strong> ₪'+a.propPrice+'<br>'):''}
       ${feeLines.length?feeLines.join(' &nbsp;&nbsp; ')+'<br>':''}
-      <strong>סוכן מטפל:</strong> ${a.agent}
+      ${en?'<strong>Agent:</strong>':'<strong>סוכן מטפל:</strong>'} ${en?(a.agentEn||a.agent):a.agent}
     </div>
-    <div class="off"><strong>בעל המשרד:</strong> זכריה דיין — Kings Jerusalem &nbsp;|&nbsp; <strong>ת.ז.:</strong> 68532365 &nbsp;|&nbsp; <strong>רישיון:</strong> 3142656</div>
+    <div class="off">${en?'<strong>Broker:</strong> Zachariah Dayan — Kings Jerusalem &nbsp;|&nbsp; <strong>ID:</strong> 68532365 &nbsp;|&nbsp; <strong>License:</strong> 3142656':'<strong>בעל המשרד:</strong> זכריה דיין — Kings Jerusalem &nbsp;|&nbsp; <strong>ת.ז.:</strong> 68532365 &nbsp;|&nbsp; <strong>רישיון:</strong> 3142656'}</div>
     <div class="ct">${body.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
     ${notesLine}
     <div class="sig-sec">
       ${dualNote}
-      <div class="sig-lbl">חתימת הלקוח:</div>
+      <div class="sig-lbl">${en?'Client Signature:':'חתימת הלקוח:'}</div>
       ${sigImg}
-      <div class="stamp">נחתם דיגיטלית בתאריך ${a.dateStr} דרך מערכת Kings Jerusalem Luxury Real Estate</div>
+      <div class="stamp">${en?'Digitally signed on':'נחתם דיגיטלית בתאריך'} ${a.dateStr} ${en?'via Kings Jerusalem Luxury Real Estate system':'דרך מערכת Kings Jerusalem Luxury Real Estate'}</div>
     </div>
   </div>
   <div class="ftr">Kings Jerusalem Luxury Real Estate &nbsp;•&nbsp; קינג ג׳ורג׳ 52, ירושלים &nbsp;•&nbsp; 02-9998228</div>
@@ -1970,7 +1990,7 @@ function quickSendWA(){
   const now=new Date();
   const a={
     id:Date.now(),type:formType,typeName:FNAMES[formType]['he'],
-    agent:agent.name,agentPhone:agent.phone||'',agentLicense:agent.license||'',
+    agent:agent.name,agentEn:agent.nameEn||agent.name,agentPhone:agent.phone||'',agentLicense:agent.license||'',
     clientName:d.name,clientId:d.id||'',clientPhone:d.phone,
     addr:d.addr,saleFee:d.saleFee,rentFee:d.rentFee,
     vatSale,vatRent,notes:d.notes,
@@ -1991,7 +2011,11 @@ function quickSendWA(){
   // Open WhatsApp directly
   const link=makeSignLink(a);
   const ph=phoneToWA(d.phone);
-  const msg=encodeURIComponent(`שלום ${d.name},\n\nהסוכן ${agent.name} מ-Kings Jerusalem שלח לך הסכם תיווך לחתימה.\n\nנכס: ${d.addr}\n\n✍️ לחתימה:\n${link}\n\nלפרטים: 02-9998228`);
+  const isEnQ=(lang==='en');
+  const msgQ=isEnQ
+    ? `Hello ${d.name},\n\nAgent ${agent.nameEn||agent.name} from Kings Jerusalem has sent you a brokerage agreement for signing.\n\n✍🏻 Sign here:\n${link}`
+    : `שלום ${d.name},\n\nהסוכן ${agent.name} מ-Kings Jerusalem שלח לך הסכם תיווך לחתימה.\n\n✍🏻 לחתימה:\n${link}`;
+  const msg=encodeURIComponent(msgQ);
   window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');
   // Show simple options after
   setTimeout(()=>showAfterWA(a), 800);
@@ -2002,7 +2026,10 @@ function sendWA(){
   const a=agreements[agreements.length-1];
   const signLink=makeSignLink(a);
   const ph=phoneToWA(a.clientPhone);
-  const msg=encodeURIComponent(`שלום ${a.clientName},\n\nהסוכן ${a.agent} מ-Kings Jerusalem Luxury Real Estate שלח לך הסכם תיווך לחתימה דיגיטלית.\n\nנכס: ${a.addr}\nתאריך: ${a.dateStr}\n\n✍️ לחתימה:\n${signLink}\n\nלפרטים: 02-9998228`);
+  const isEnWA=(a.lang==='en');
+  const msg=encodeURIComponent(isEnWA
+    ? `Hello ${a.clientName},\n\nAgent ${a.agentEn||a.agent} from Kings Jerusalem has sent you a brokerage agreement for signing.\n\n✍🏻 Sign here:\n${signLink}`
+    : `שלום ${a.clientName},\n\nהסוכן ${a.agent} מ-Kings Jerusalem שלח לך הסכם תיווך לחתימה.\n\n✍🏻 לחתימה:\n${signLink}`);
   window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');
   // After WhatsApp opens, show options
   setTimeout(()=>showAfterWA(a), 800);
@@ -2104,7 +2131,198 @@ function dlQPDF(q){
   },800);
 }
 
-/* ══ MANAGER ══ */
+/* ══ EXCEL EXPORT ══ */
+function exportExcel(type){
+  let rows=[], headers=[], filename='';
+  if(type==='agreements'){
+    headers=['שם לקוח','ת.ז.','טלפון','נכס','סוג הסכם','סוכן','תאריך','חתום'];
+    rows=agreements.map(a=>[a.clientName,a.clientId||'',a.clientPhone,a.addr,a.typeName||a.type,a.agent,a.dateStr,a.sig?'כן':'לא']);
+    filename='Kings_הסכמים.csv';
+  } else if(type==='clients'){
+    headers=['שם','ת.ז.','טלפון'];
+    rows=clientsDB.map(c=>[c.name,c.id||'',c.phone]);
+    filename='Kings_לקוחות.csv';
+  } else if(type==='properties'){
+    headers=['כתובת','מחיר','גודל מ"ר','הערות','שימוש','בלעדיות','מ','עד'];
+    rows=propsDB.map(p=>[p.addr,p.price||'',p.size||'',p.notes||'',p.cnt||0,p.exclOn?'כן':'לא',p.exclFrom||'',p.exclTo||'']);
+    filename='Kings_נכסים.csv';
+  } else if(type==='agents'){
+    headers=['שם','שם באנגלית','הסכמים','לקוחות','נכסים'];
+    rows=AGENTS.map(ag=>{
+      const ags=agreements.filter(a=>a.agent===ag.name);
+      return[ag.name,ag.nameEn||'',ags.length,new Set(ags.map(a=>a.clientId)).size,new Set(ags.map(a=>a.addr)).size];
+    });
+    filename='Kings_סוכנים.csv';
+  }
+  const BOM='\uFEFF';
+  const csv=BOM+[headers,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=filename;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+/* ══ MANAGER CRUD ══ */
+let _editType='', _editId='';
+
+function openAddModal(type){
+  _editType=type; _editId='';
+  if(type==='client') showEditModal('client','','','','');
+  else if(type==='agent') showEditModal('agent','','','');
+}
+
+function showEditModal(type, f1, f2, f3, f4){
+  const existing=document.getElementById('mgr-edit-modal');
+  if(existing) existing.remove();
+  let fields='', title='';
+  if(type==='client'){
+    title=_editId?'✏️ עריכת לקוח':'+ לקוח חדש';
+    fields=`<div class="fg"><label class="fl">שם *</label><input class="fi" id="em-f1" value="${f1}"></div>
+      <div class="fg"><label class="fl">ת.ז.</label><input class="fi" id="em-f2" value="${f2}" inputmode="numeric"></div>
+      <div class="fg"><label class="fl">טלפון</label><input class="fi" id="em-f3" value="${f3}" type="tel"></div>`;
+  } else if(type==='agent'){
+    title=_editId?'✏️ עריכת סוכן':'+ סוכן חדש';
+    fields=`<div class="fg"><label class="fl">שם בעברית *</label><input class="fi" id="em-f1" value="${f1}"></div>
+      <div class="fg"><label class="fl">שם באנגלית</label><input class="fi" id="em-f2" value="${f2}"></div>`;
+  }
+  const modal=document.createElement('div');
+  modal.id='mgr-edit-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML=`<div style="background:#fff;border-radius:16px;padding:22px 18px;width:100%;max-width:360px">
+    <div style="font-family:'Playfair Display',serif;font-size:15px;font-weight:600;margin-bottom:14px">${title}</div>
+    ${fields}
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button onclick="document.getElementById('mgr-edit-modal').remove()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:'Heebo',sans-serif;cursor:pointer;color:var(--gray)">ביטול</button>
+      <button onclick="saveMgrEdit()" style="flex:1;background:var(--black);border:none;border-radius:8px;padding:11px;font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;color:var(--gold-light);cursor:pointer">שמור ←</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+function saveMgrEdit(){
+  const f1=(document.getElementById('em-f1')?.value||'').trim();
+  if(!f1){alert('נא למלא שדה חובה');return;}
+  const f2=(document.getElementById('em-f2')?.value||'').trim();
+  const f3=(document.getElementById('em-f3')?.value||'').trim();
+  if(_editType==='client'){
+    if(_editId){
+      const idx=clientsDB.findIndex(c=>c.id===_editId);
+      if(idx>=0){clientsDB[idx].name=f1;clientsDB[idx].id=f2;clientsDB[idx].phone=f3;}
+    } else {
+      clientsDB.push({name:f1,id:f2,phone:f3,seen:new Date().toISOString()});
+    }
+    save(); document.getElementById('mgr-edit-modal').remove(); renderClients();
+  } else if(_editType==='agent'){
+    if(_editId){
+      const idx=AGENTS.findIndex(a=>a.name===_editId);
+      if(idx>=0){AGENTS[idx].name=f1;AGENTS[idx].nameEn=f2;}
+    } else {
+      AGENTS.push({name:f1,nameEn:f2,phone:'',license:''});
+    }
+    document.getElementById('mgr-edit-modal').remove(); renderAgents();
+  }
+}
+
+function deleteItem(type, id){
+  if(!confirm('למחוק?')) return;
+  if(type==='client'){clientsDB=clientsDB.filter(c=>c.id!==id);save();renderClients();}
+  else if(type==='agreement'){agreements=agreements.filter(a=>String(a.id)!==String(id));save();renderAgreements();}
+  else if(type==='property'){propsDB=propsDB.filter(p=>p.addr!==id);save();renderProperties();}
+}
+
+function editClient(id){
+  _editType='client'; _editId=id;
+  const c=clientsDB.find(x=>x.id===id);if(!c)return;
+  showEditModal('client',c.name,c.id||'',c.phone,'');
+}
+function editAgent(name){
+  _editType='agent'; _editId=name;
+  const a=AGENTS.find(x=>x.name===name);if(!a)return;
+  showEditModal('agent',a.name,a.nameEn||'','');
+}
+
+/* ══ MANAGER RENDER FUNCTIONS ══ */
+function renderAgreements(){
+  const fa=document.getElementById('fil-agent').value;
+  const ft=document.getElementById('fil-type').value;
+  let list=[...agreements].reverse();
+  if(fa)list=list.filter(a=>a.agent===fa);
+  if(ft)list=list.filter(a=>a.type===ft);
+  const el=document.getElementById('list-agreements');
+  if(!list.length){el.innerHTML='<div class="empty">אין הסכמים</div>';return;}
+  el.innerHTML=list.map(a=>{
+    const[cls,lbl]=TBADGES[a.type]||['t-sale','?'];
+    return`<div class="lcard">
+      <div class="lrow" onclick="openAgreementView('${String(a.id)}','screen-mgr')">
+        <div><h4>${a.clientName}</h4><p>📍 ${a.addr}</p><p>👤 ${a.agent} · ${a.dateStr}</p></div>
+        <div class="lmeta"><span class="tbadge ${cls}">${lbl}</span>${a.sig?'<span style="font-size:9px;color:#2E7D32">✅</span>':'<span style="font-size:9px;color:#E65100">⏳</span>'}</div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <button class="btn-edit-sm" onclick="openAgreementView('${String(a.id)}','screen-mgr')">📄 צפה</button>
+        <button class="btn-del" onclick="deleteItem('agreement','${String(a.id)}')">🗑 מחק</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderClients(){
+  const q=(document.getElementById('s-clients')?.value||'').toLowerCase();
+  let list=[...clientsDB].sort((a,b)=>a.name.localeCompare(b.name));
+  if(q)list=list.filter(c=>c.name.toLowerCase().includes(q)||(c.id||'').includes(q));
+  const el=document.getElementById('list-clients');
+  if(!list.length){el.innerHTML='<div class="empty">אין לקוחות</div>';return;}
+  el.innerHTML=list.map(c=>{
+    const cnt=agreements.filter(a=>a.clientId===c.id).length;
+    return`<div class="lcard">
+      <div class="lrow">
+        <div><h4>${c.name}</h4><p>🪪 ${c.id||'—'} · 📞 ${c.phone}</p><p style="font-size:10px;color:var(--gray)">${cnt} הסכמים</p></div>
+        <div class="lmeta" style="display:flex;flex-direction:column;gap:4px">
+          <button class="btn-edit-sm" onclick="editClient('${c.id}')">✏️ עריכה</button>
+          <button class="btn-del" onclick="deleteItem('client','${c.id}')">🗑 מחק</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderProperties(){
+  const q=(document.getElementById('s-props')?.value||'').toLowerCase();
+  let list=[...propsDB].sort((a,b)=>(b.cnt||0)-(a.cnt||0));
+  if(q)list=list.filter(p=>p.addr.toLowerCase().includes(q));
+  const el=document.getElementById('list-properties');
+  if(!list.length){el.innerHTML='<div class="empty">אין נכסים</div>';return;}
+  el.innerHTML=list.map(p=>`<div class="lcard">
+    <div class="lrow">
+      <div><h4>📍 ${p.addr}</h4>${p.price?`<p>💰 ${p.price}</p>`:''}${p.size?`<p>📐 ${p.size} מ"ר</p>`:''}${p.exclOn?`<p style="color:#6A1B9A;font-size:10px">✦ בלעדיות</p>`:''}<p style="font-size:10px;color:var(--gray)">שימוש: ${p.cnt||0} פעם</p></div>
+      <div class="lmeta" style="display:flex;flex-direction:column;gap:4px">
+        <button class="btn-edit-sm" onclick="openEditProp('${p.addr.replace(/'/g,"\\'")}')">✏️ עריכה</button>
+        <button class="btn-del" onclick="deleteItem('property','${p.addr.replace(/'/g,"\\'")}')">🗑 מחק</button>
+      </div>
+    </div>
+  </div>`).join('');
+}
+
+function renderAgents(){
+  const max=Math.max(...AGENTS.map(ag=>agreements.filter(a=>a.agent===ag.name).length),1);
+  document.getElementById('list-agents').innerHTML=AGENTS.map(ag=>{
+    const ags=agreements.filter(a=>a.agent===ag.name);
+    const pct=Math.round((ags.length/max)*100);
+    return`<div class="lcard">
+      <div class="lrow">
+        <div style="flex:1">
+          <h4>👤 ${ag.name} <span style="color:var(--gray);font-size:11px;font-weight:400">${ag.nameEn||''}</span></h4>
+          <p>${ags.length} הסכמים · ${new Set(ags.map(a=>a.clientId)).size} לקוחות</p>
+          <div class="pbar"><div class="pbf" style="width:${pct}%"></div></div>
+        </div>
+        <div class="lmeta" style="display:flex;flex-direction:column;gap:4px">
+          <button class="btn-edit-sm" onclick="editAgent('${ag.name}')">✏️ עריכה</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ══ MANAGER LOAD ══ */
 function loadMgr(){
   const today=new Date().toLocaleDateString('he-IL');
   document.getElementById('mgr-stats').innerHTML=`
@@ -2173,24 +2391,6 @@ function renderProperties(){
         <div><h4>📍 ${p.addr}</h4><p>סוכנים: ${[...new Set(p.agents)].join(', ')}</p></div>
         <div class="lmeta"><span class="cnt">${p.cnt} הסכמים</span></div>
       </div></div>`).join('');
-}
-
-function renderAgents(){
-  const max=Math.max(...AGENTS.map(ag=>agreements.filter(a=>a.agent===ag.name).length),1);
-  document.getElementById('list-agents').innerHTML=AGENTS.map(ag=>{
-    const ags=agreements.filter(a=>a.agent===ag.name);
-    const cl=new Set(ags.map(a=>a.clientId)).size;
-    const pr=new Set(ags.map(a=>a.addr)).size;
-    const pct=Math.round((ags.length/max)*100);
-    return `<div class="lcard" onclick="showAgentDetail('${ag.name}')">
-      <div class="lrow">
-        <div style="flex:1"><h4>👤 ${ag.name}</h4>
-          <p>${ags.length} הסכמים · ${cl} לקוחות · ${pr} נכסים</p>
-          <div class="pbar-wrap"><div class="pbar"><div class="pbar-fill" style="width:${pct}%"></div></div></div>
-        </div>
-        <div class="lmeta" style="margin-right:12px"><span class="cnt">${ags.length}</span></div>
-      </div></div>`;
-  }).join('');
 }
 
 /* ══ DETAIL PANELS ══ */
