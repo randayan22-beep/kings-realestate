@@ -1369,6 +1369,7 @@ function addPropFromDB(){
   if(exists>=0) Object.assign(propsDB[exists], propData);
   else propsDB.push(propData);
   save();
+  syncPropsToSupa();
   document.getElementById('add-prop-form').style.display='none';
   renderPropDB();
 }
@@ -1398,14 +1399,16 @@ function renderPropDB(){
 let _editPropAddr='';
 function openEditProp(addr){
   _editPropAddr=addr;
-  const p=addr==='__new__'?null:propsDB.find(x=>x.addr===addr);
+  const isNew=addr==='__new__'||!addr;
+  document.querySelector('#edit-prop-modal .modal-title').textContent=isNew?'+ נכס חדש':'✏️ עריכת נכס';
+  const p=isNew?null:propsDB.find(x=>x.addr===addr);
   document.getElementById('ep-addr').value=p?p.addr:'';
   document.getElementById('ep-price').value=p?p.price||'':'';
   document.getElementById('ep-size').value=p?p.size||'':'';
   document.getElementById('ep-notes').value=p?p.notes||'':'';
   const exclOn=p?p.exclOn||false:false;
   const tog=document.getElementById('ep-excl-tog');
-  const dates=document.getElementById('ep-excl-d');
+  const dates=document.getElementById('ep-excl-dates');
   exclOn?tog.classList.add('on'):tog.classList.remove('on');
   exclOn?dates.classList.add('open'):dates.classList.remove('open');
   document.getElementById('ep-excl-from').value=p?p.exclFrom||'':'';
@@ -2262,14 +2265,16 @@ async function loadAgentsFromSupa(){
       rows.forEach(r=>{
         const idx=AGENTS.findIndex(a=>a.name===r.name);
         if(idx>=0){
+          // Update existing agent
           AGENTS[idx].nameEn=r.name_en||AGENTS[idx].nameEn||'';
           AGENTS[idx].id=r.agent_id||'';
           AGENTS[idx].license=r.license||'';
+        } else {
+          // Add new agent that was added by manager
+          AGENTS.push({name:r.name,nameEn:r.name_en||'',id:r.agent_id||'',license:r.license||'',phone:r.phone||''});
         }
-        // Don't add unknown agents from Supabase — only update existing
       });
       save();
-      console.log('✅ Agents loaded from Supabase');
     }
   }catch(e){console.log('load agents err',e);}
 }
