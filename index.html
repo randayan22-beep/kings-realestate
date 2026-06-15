@@ -669,7 +669,7 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
 /* ══ CONFIG ══ */
 const MGR_PWD = 'kings2024';
 const OFFICE = {name:'Kings Jerusalem Luxury Real Estate',id:'68532365',addr:'קינג ג׳ורג׳ 52, ירושלים',license:'3142656',phone:'02-9998228'};
-const AGENTS = [
+let AGENTS = [
   {name:'גולדי',nameEn:'Goldi',phone:'',id:'',license:''},
   {name:'יהונתן',nameEn:'Yehonatan',phone:'',id:'',license:''},
   {name:'רן',nameEn:'Ran',phone:'',id:'',license:''},
@@ -841,13 +841,21 @@ let agreements = JSON.parse(localStorage.getItem('k_ag')||'[]');
 let clientsDB  = JSON.parse(localStorage.getItem('k_cl')||'[]');
 let propsDB    = JSON.parse(localStorage.getItem('k_pr')||'[]');
 let questDB    = JSON.parse(localStorage.getItem('k_qu')||'[]');
-// Restore saved agent edits (id, license, nameEn) from localStorage
+// Restore saved agents from localStorage (including manager-added agents)
 (function loadSavedAgents(){
   const saved = JSON.parse(localStorage.getItem('k_agents')||'[]');
-  if(saved.length) saved.forEach(sa=>{
-    const idx=AGENTS.findIndex(a=>a.name===sa.name);
-    if(idx>=0) Object.assign(AGENTS[idx],{nameEn:sa.nameEn||AGENTS[idx].nameEn,id:sa.id||'',license:sa.license||'',phone:sa.phone||''});
-  });
+  if(saved.length) {
+    // First, update existing agents
+    saved.forEach(sa=>{
+      const idx=AGENTS.findIndex(a=>a.name===sa.name);
+      if(idx>=0) {
+        Object.assign(AGENTS[idx],{nameEn:sa.nameEn||AGENTS[idx].nameEn,id:sa.id||'',license:sa.license||'',phone:sa.phone||''});
+      } else {
+        // Add new agent that was added by manager (not in hardcoded list)
+        AGENTS.push({name:sa.name,nameEn:sa.nameEn||'',phone:sa.phone||'',id:sa.id||'',license:sa.license||''});
+      }
+    });
+  }
 })();
 
 function save(){
@@ -858,10 +866,25 @@ function save(){
   localStorage.setItem('k_agents',JSON.stringify(AGENTS));
 }
 
+/* ══ BUILD AGENT GRID ══ */
+function buildAgentGrid(){
+  const grid = document.getElementById('agent-grid');
+  if(!grid) return;
+  grid.innerHTML = '';
+  AGENTS.forEach(a => {
+    const b = document.createElement('button');
+    b.className = 'agent-btn';
+    b.textContent = a.name;
+    b.onclick = () => loginAgent(a);
+    grid.appendChild(b);
+  });
+}
+
 /* ══ INIT ══ */
 window.onload = async function(){
-  // Load agent details from Supabase (id, license, nameEn)
+  // Load agent details from Supabase (id, license, nameEn) and rebuild grid
   await loadAgentsFromSupa();
+  buildAgentGrid();
   // Set real logos
   // Dark backgrounds: mix-blend-mode screen makes black transparent, gold shows
   document.querySelectorAll('#login-logo-img,#hdr-logo-img,#view-hdr-logo').forEach(el=>{
@@ -876,17 +899,8 @@ window.onload = async function(){
     el.style.filter = 'brightness(0.9)';
   });
 
-  // Build agent grid first (always needed)
-  const grid = document.getElementById('agent-grid');
-  if(grid && grid.children.length === 0){
-    AGENTS.forEach(a => {
-      const b = document.createElement('button');
-      b.className = 'agent-btn';
-      b.textContent = a.name;
-      b.onclick = () => loginAgent(a);
-      grid.appendChild(b);
-    });
-  }
+  // Build agent grid (always rebuild to show newly-added agents)
+  buildAgentGrid();
 
   document.addEventListener('click', e => {
     if(!e.target.closest('.ac-wrap'))
@@ -994,7 +1008,23 @@ function openPropModal(inputId,ddId,addr){
   // No longer used - replaced by inline fields
 }
 function closePropModal(){ }
-function savePropModal(){ }
+function savePropModal(){
+  const addr=document.getElementById('pm-addr').value.trim();
+  const price=document.getElementById('pm-price').value.trim();
+  const size=document.getElementById('pm-size').value.trim();
+  if(!addr||!price||!size){alert('נא למלא כתובת, מחיר וגודל');return;}
+  const now=new Date().toISOString();
+  const exists=propsDB.findIndex(p=>p.addr.toLowerCase()===addr.toLowerCase());
+  const propEntry={addr,price,size,notes:document.getElementById('pm-notes').value.trim(),exclOn:false,exclFrom:'',exclTo:'',cnt:0,agents:[],seen:now};
+  if(exists>=0) Object.assign(propsDB[exists],{price,size,notes:propEntry.notes});
+  else propsDB.push(propEntry);
+  save();
+  syncPropsToSupa();
+  closePropModal();
+  // If address autocomplete field exists, fill it
+  const addrField=document.getElementById('f-addr');
+  if(addrField){addrField.value=addr;filterAddr(addr);}
+}
 
 /* ══ FORM ══ */
 function startForm(type){
@@ -1295,15 +1325,16 @@ async function showMyAgreements(){
 function showClientDB(){
   showScreen('screen-clientdb');
   document.getElementById('client-db-list').innerHTML='<div class="empty">⏳ טוען...</div>';
-  // Sync from Supabase (shared across ALL agents)
-  fetch(`${SUPA_URL}/rest/v1/clients?order=name.asc&limit=500`,{
+  // Sync from Supabase - only current agent's clients
+  const agentFilter = agent ? `&agent=eq.${encodeURIComponent(agent.name)}` : '';
+  fetch(`${SUPA_URL}/rest/v1/clients?order=name.asc&limit=500${agentFilter}`,{
     headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
   }).then(r=>r.json()).then(rows=>{
     if(rows&&!rows.error&&rows.length){
       rows.forEach(r=>{
         const idx=clientsDB.findIndex(c=>c.id===r.id);
-        if(idx>=0) clientsDB[idx]={name:r.name,id:r.id,phone:r.phone,seen:r.seen};
-        else clientsDB.push({name:r.name,id:r.id,phone:r.phone,seen:r.seen});
+        if(idx>=0) clientsDB[idx]={name:r.name,id:r.id,phone:r.phone,seen:r.seen,agentName:r.agent_name||''};
+        else clientsDB.push({name:r.name,id:r.id,phone:r.phone,seen:r.seen,agentName:r.agent_name||''});
       });
       save();
     }
@@ -1312,19 +1343,29 @@ function showClientDB(){
 }
 function renderClientDB(){
   const q=(document.getElementById('s-clients-ag')?.value||'').toLowerCase();
-  // Deduplicate by ID
+  // Deduplicate by ID — show only current agent's clients
   const seen=new Set();
+  // Filter by agreements belonging to this agent
+  const myClientIds=new Set(agreements.filter(a=>!agent||a.agent===agent.name).map(a=>a.clientId).filter(Boolean));
   let list=clientsDB.filter(c=>{
+    // Only show clients that have agreements with this agent
     const key=c.id||c.name;
     if(seen.has(key)) return false;
-    seen.add(key); return true;
+    seen.add(key);
+    // If client has an agentName field, use it; otherwise check agreements
+    if(c.agentName && agent && c.agentName !== agent.name) return false;
+    if(c.id && !myClientIds.has(c.id) && myClientIds.size>0) {
+      // Still show if no agent filter (no agreements yet but client was added manually)
+      if(c.agentName && agent && c.agentName !== agent.name) return false;
+    }
+    return true;
   }).sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
   if(q) list=list.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.id||'').includes(q)||(c.phone||'').includes(q));
   const el=document.getElementById('client-db-list');
   if(!list.length){el.innerHTML='<div class="empty">אין לקוחות במאגר</div>';return;}
   el.innerHTML=
   list.map(c=>{
-    const cnt=agreements.filter(a=>a.clientId===c.id).length;
+    const cnt=agreements.filter(a=>a.clientId===c.id&&(!agent||a.agent===agent.name)).length;
     return`<div class="lcard">
       <div class="lrow">
         <div><h4>${c.name}</h4><p>🪪 ${c.id||'—'} · 📞 ${c.phone||'—'}</p><p style="font-size:10px;color:var(--gray)">${cnt} הסכמים</p></div>
@@ -1341,7 +1382,25 @@ function togglePropExcl(prefix){
   dates.classList.toggle('open',isOn);
 }
 function showPropDB(){
-  renderPropDB();
+  // Sync agent's own properties from Supabase before rendering
+  if(agent) {
+    fetch(`${SUPA_URL}/rest/v1/properties?select=*&order=cnt.desc`,{
+      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
+    }).then(r=>r.json()).then(rows=>{
+      if(rows&&!rows.error&&rows.length){
+        rows.forEach(r=>{
+          const idx=propsDB.findIndex(p=>p.addr===r.addr);
+          const mapped={addr:r.addr,cnt:r.cnt||0,agents:r.agents||[],seen:r.seen,price:r.price||'',size:r.size||'',notes:r.notes||'',exclOn:r.excl_on||false,exclFrom:r.excl_from||'',exclTo:r.excl_to||''};
+          if(idx>=0) Object.assign(propsDB[idx],mapped);
+          else propsDB.push(mapped);
+        });
+        save();
+      }
+      renderPropDB();
+    }).catch(()=>renderPropDB());
+  } else {
+    renderPropDB();
+  }
   showScreen('screen-propdb');
 }
 function showAddPropForm(){
@@ -1359,15 +1418,18 @@ function addPropFromDB(){
   const exclOn=document.getElementById('ap-excl-tog').classList.contains('on');
   const exists=propsDB.findIndex(p=>p.addr.toLowerCase()===addr.toLowerCase());
   const now=new Date().toISOString();
+  const agentName=agent?agent.name:'';
   const propData={
     addr, price, size,
     notes:document.getElementById('ap-notes').value.trim(),
     exclOn, exclFrom:document.getElementById('ap-excl-from').value,
     exclTo:document.getElementById('ap-excl-to').value,
-    cnt:0, agents:[], seen:now
+    cnt:0, agents:agentName?[agentName]:[], seen:now
   };
-  if(exists>=0) Object.assign(propsDB[exists], propData);
-  else propsDB.push(propData);
+  if(exists>=0) {
+    Object.assign(propsDB[exists], propData);
+    if(agentName && !propsDB[exists].agents.includes(agentName)) propsDB[exists].agents.push(agentName);
+  } else propsDB.push(propData);
   save();
   syncPropsToSupa();
   document.getElementById('add-prop-form').style.display='none';
@@ -1375,7 +1437,16 @@ function addPropFromDB(){
 }
 function renderPropDB(){
   const q=(document.getElementById('prop-search').value||'').toLowerCase();
+  // For agents: only show properties they've been involved with or added
   let list=[...propsDB].sort((a,b)=>new Date(b.seen||0)-new Date(a.seen||0));
+  if(agent) {
+    // Show properties where this agent is listed, OR that appear in their agreements
+    const myAddrs=new Set(agreements.filter(a=>a.agent===agent.name).map(a=>a.addr.toLowerCase()));
+    list=list.filter(p=>
+      (p.agents&&p.agents.includes(agent.name)) ||
+      myAddrs.has(p.addr.toLowerCase())
+    );
+  }
   if(q)list=list.filter(p=>p.addr.toLowerCase().includes(q));
   const el=document.getElementById('prop-db-list');
   if(!list.length){el.innerHTML='<div class="empty">אין נכסים במאגר</div>';return;}
@@ -1947,8 +2018,8 @@ async function submitAgreement(requireSig=true){
   };
   agreements.push(a);
   const ci=clientsDB.findIndex(c=>c.id===d.id);
-  if(ci>=0){clientsDB[ci]={name:d.name,id:d.id,phone:d.phone,seen:now.toISOString()};}
-  else clientsDB.push({name:d.name,id:d.id,phone:d.phone,seen:now.toISOString()});
+  if(ci>=0){clientsDB[ci]={name:d.name,id:d.id,phone:d.phone,seen:now.toISOString(),agentName:agent.name};}
+  else clientsDB.push({name:d.name,id:d.id,phone:d.phone,seen:now.toISOString(),agentName:agent.name});
   const pi=propsDB.findIndex(p=>p.addr.toLowerCase()===d.addr.toLowerCase());
   if(pi>=0){propsDB[pi].cnt++;propsDB[pi].seen=now.toISOString();if(!propsDB[pi].agents.includes(agent.name))propsDB[pi].agents.push(agent.name);}
   else propsDB.push({addr:d.addr,cnt:1,agents:[agent.name],seen:now.toISOString()});
@@ -2111,7 +2182,7 @@ function quickSendWA(){
   };
   agreements.push(a);
   // Update DBs
-  if(d.id){const ci=clientsDB.findIndex(c=>c.id===d.id);if(ci>=0)clientsDB[ci]={name:d.name,id:d.id,phone:d.phone,seen:now.toISOString()};else clientsDB.push({name:d.name,id:d.id,phone:d.phone,seen:now.toISOString()});}
+  if(d.id){const ci=clientsDB.findIndex(c=>c.id===d.id);if(ci>=0)clientsDB[ci]={name:d.name,id:d.id,phone:d.phone,seen:now.toISOString(),agentName:agent.name};else clientsDB.push({name:d.name,id:d.id,phone:d.phone,seen:now.toISOString(),agentName:agent.name});}
   const pi=propsDB.findIndex(p=>p.addr.toLowerCase()===d.addr.toLowerCase());
   if(pi>=0){propsDB[pi].cnt++;propsDB[pi].seen=now.toISOString();}
   else propsDB.push({addr:d.addr,cnt:1,agents:[agent.name],seen:now.toISOString()});
@@ -2265,12 +2336,13 @@ async function loadAgentsFromSupa(){
       rows.forEach(r=>{
         const idx=AGENTS.findIndex(a=>a.name===r.name);
         if(idx>=0){
-          // Update existing agent
+          // Update existing agent details
           AGENTS[idx].nameEn=r.name_en||AGENTS[idx].nameEn||'';
           AGENTS[idx].id=r.agent_id||'';
           AGENTS[idx].license=r.license||'';
+          AGENTS[idx].phone=r.phone||AGENTS[idx].phone||'';
         } else {
-          // Add new agent that was added by manager
+          // Add new agent that was added by manager from Supabase
           AGENTS.push({name:r.name,nameEn:r.name_en||'',id:r.agent_id||'',license:r.license||'',phone:r.phone||''});
         }
       });
@@ -2316,7 +2388,7 @@ async function syncClientsToSupa(){
       await fetch(`${SUPA_URL}/rest/v1/clients`,{
         method:'POST',
         headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
-        body:JSON.stringify({id:cl.id,name:cl.name,phone:cl.phone||'',seen:cl.seen||new Date().toISOString()})
+        body:JSON.stringify({id:cl.id,name:cl.name,phone:cl.phone||'',seen:cl.seen||new Date().toISOString(),agent_name:cl.agentName||''})
       });
     }
   }catch(e){console.log('clients sync err',e);}
@@ -2460,6 +2532,7 @@ function saveMgrEdit(){
     save();
     syncAgentsToSupa();
     document.getElementById('mgr-edit-modal').remove(); renderAgents();
+    buildAgentGrid(); // Rebuild login grid so new agent appears
   }
 }
 
@@ -2486,6 +2559,22 @@ function editClient(id){
   const c=clientsDB.find(x=>x.id===id);if(!c)return;
   showEditModal('client',c.name,c.id||'',c.phone,'');
 }
+async function deleteAgent(name){
+  if(!confirm(`למחוק את הסוכן ${name}? פעולה זו אינה ניתנת לביטול.`)) return;
+  const idx = AGENTS.findIndex(a=>a.name===name);
+  if(idx>=0) AGENTS.splice(idx,1);
+  save();
+  buildAgentGrid();
+  renderAgents();
+  // Delete from Supabase
+  try {
+    await fetch(`${SUPA_URL}/rest/v1/agents?name=eq.${encodeURIComponent(name)}`,{
+      method:'DELETE',
+      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
+    });
+  } catch(e){console.log('delete agent supa err',e);}
+}
+
 function editAgent(name){
   _editType='agent'; _editId=name;
   const a=AGENTS.find(x=>x.name===name);if(!a)return;
@@ -2585,10 +2674,11 @@ function renderAgents(){
           ${ag.id?`<p style="font-size:10px">🪪 ${ag.id}</p>`:''}
           ${ag.license?`<p style="font-size:10px">📋 רישיון: ${ag.license}</p>`:''}
           <p>${ags.length} הסכמים · ${new Set(ags.map(a=>a.clientId)).size} לקוחות</p>
-          <div class="pbar"><div class="pbf" style="width:${pct}%"></div></div>
+          <div class="pbar-wrap"><div class="pbar"><div class="pbar-fill" style="width:${pct}%"></div></div></div>
         </div>
         <div class="lmeta" style="display:flex;flex-direction:column;gap:4px">
           <button class="btn-edit-sm" onclick="editAgent('${ag.name}')">✏️ עריכה</button>
+          <button class="btn-del" onclick="deleteAgent('${ag.name}')">🗑 מחק</button>
         </div>
       </div>
     </div>`;
