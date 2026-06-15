@@ -860,6 +860,8 @@ function save(){
 
 /* ══ INIT ══ */
 window.onload = async function(){
+  // Load agent details from Supabase (id, license, nameEn)
+  await loadAgentsFromSupa();
   // Set real logos
   // Dark backgrounds: mix-blend-mode screen makes black transparent, gold shows
   document.querySelectorAll('#login-logo-img,#hdr-logo-img,#view-hdr-logo').forEach(el=>{
@@ -1430,6 +1432,7 @@ function savePropEdit(){
     if(pi>=0) Object.assign(propsDB[pi],entry);
   }
   save();
+  syncPropsToSupa();
   document.getElementById('edit-prop-modal').classList.remove('open');
   if(document.getElementById('screen-propdb')?.classList.contains('active')) renderPropDB();
   else renderProperties();
@@ -2234,6 +2237,86 @@ function dlQPDF(q){
   },800);
 }
 
+/* ══ SUPABASE SYNC — AGENTS, CLIENTS, PROPERTIES ══ */
+
+async function syncAgentsToSupa(){
+  try{
+    for(const ag of AGENTS){
+      await fetch(`${SUPA_URL}/rest/v1/agents`,{
+        method:'POST',
+        headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
+        body:JSON.stringify({name:ag.name,name_en:ag.nameEn||'',agent_id:ag.id||'',license:ag.license||'',phone:ag.phone||''})
+      });
+    }
+    console.log('✅ Agents synced to Supabase');
+  }catch(e){console.log('agent sync err',e);}
+}
+
+async function loadAgentsFromSupa(){
+  try{
+    const res=await fetch(`${SUPA_URL}/rest/v1/agents?select=*`,{
+      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
+    });
+    const rows=await res.json();
+    if(rows&&!rows.error&&rows.length){
+      rows.forEach(r=>{
+        const idx=AGENTS.findIndex(a=>a.name===r.name);
+        if(idx>=0){
+          AGENTS[idx].nameEn=r.name_en||AGENTS[idx].nameEn||'';
+          AGENTS[idx].id=r.agent_id||'';
+          AGENTS[idx].license=r.license||'';
+        }
+        // Don't add unknown agents from Supabase — only update existing
+      });
+      save();
+      console.log('✅ Agents loaded from Supabase');
+    }
+  }catch(e){console.log('load agents err',e);}
+}
+
+async function syncPropsToSupa(){
+  try{
+    for(const p of propsDB){
+      await fetch(`${SUPA_URL}/rest/v1/properties`,{
+        method:'POST',
+        headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
+        body:JSON.stringify({addr:p.addr,cnt:p.cnt||0,agents:p.agents||[],seen:p.seen||new Date().toISOString(),price:p.price||'',size:p.size||'',notes:p.notes||'',excl_on:p.exclOn||false,excl_from:p.exclFrom||'',excl_to:p.exclTo||''})
+      });
+    }
+  }catch(e){console.log('props sync err',e);}
+}
+
+async function loadPropsFromSupa(){
+  try{
+    const res=await fetch(`${SUPA_URL}/rest/v1/properties?select=*&order=cnt.desc`,{
+      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
+    });
+    const rows=await res.json();
+    if(rows&&!rows.error&&rows.length){
+      rows.forEach(r=>{
+        const idx=propsDB.findIndex(p=>p.addr===r.addr);
+        const mapped={addr:r.addr,cnt:r.cnt||0,agents:r.agents||[],seen:r.seen,price:r.price||'',size:r.size||'',notes:r.notes||'',exclOn:r.excl_on||false,exclFrom:r.excl_from||'',exclTo:r.excl_to||''};
+        if(idx>=0) Object.assign(propsDB[idx],mapped);
+        else propsDB.push(mapped);
+      });
+      save();
+    }
+  }catch(e){console.log('load props err',e);}
+}
+
+async function syncClientsToSupa(){
+  try{
+    for(const cl of clientsDB){
+      if(!cl.id) continue; // skip clients without ID
+      await fetch(`${SUPA_URL}/rest/v1/clients`,{
+        method:'POST',
+        headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
+        body:JSON.stringify({id:cl.id,name:cl.name,phone:cl.phone||'',seen:cl.seen||new Date().toISOString()})
+      });
+    }
+  }catch(e){console.log('clients sync err',e);}
+}
+
 /* ══ BULK SELECT & DELETE ══ */
 let _selected = {agreement:new Set(), client:new Set(), property:new Set()};
 
@@ -2359,7 +2442,7 @@ function saveMgrEdit(){
     } else {
       clientsDB.push({name:f1,id:f2,phone:f3,seen:new Date().toISOString()});
     }
-    save(); document.getElementById('mgr-edit-modal').remove(); renderClients();
+    save(); syncClientsToSupa(); document.getElementById('mgr-edit-modal').remove(); renderClients();
   } else if(_editType==='agent'){
     const f3=(document.getElementById('em-f3')?.value||'').trim();
     const f4=(document.getElementById('em-f4')?.value||'').trim();
@@ -2370,6 +2453,7 @@ function saveMgrEdit(){
       AGENTS.push({name:f1,nameEn:f2,phone:'',id:f3,license:f4});
     }
     save();
+    syncAgentsToSupa();
     document.getElementById('mgr-edit-modal').remove(); renderAgents();
   }
 }
@@ -2509,7 +2593,9 @@ function renderAgents(){
 /* ══ MANAGER LOAD ══ */
 async function loadMgr(){
   document.getElementById('mgr-stats').innerHTML='<div style="grid-column:span 3;text-align:center;color:var(--gray);font-size:12px">⏳ טוען...</div>';
-  // Always sync fresh from Supabase so deletions from any device are reflected
+  // Load agents + props from Supabase first
+  await Promise.all([loadAgentsFromSupa(), loadPropsFromSupa()]);
+  // Then load agreements fresh from Supabase
   try{
     const res=await fetch(`${SUPA_URL}/rest/v1/agreements?order=created_at.desc&limit=500`,{
       headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
