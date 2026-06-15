@@ -577,7 +577,7 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
 <div class="screen" id="screen-view-ag">
   <div class="app-header">
     <div class="hlogo" style="display:flex;align-items:center;gap:8px"><img style="height:32px;width:auto;border-radius:4px" src="" id="view-hdr-logo" alt="Kings"></div>
-    <button class="hback" id="view-ag-back" onclick="history.back()">← חזור</button>
+    <button class="hback" id="view-ag-back" onclick="showScreen(viewReturnScreen)">← חזור</button>
   </div>
   <div class="form-body">
     <!-- Agreement header -->
@@ -736,6 +736,26 @@ async function supaFetch(table, method, body, upsert=false){
   return res;
 }
 
+async function supaDelete(table, filter){
+  // filter e.g. 'id=eq.123' or 'addr=eq.someaddr'
+  try{
+    const res = await fetch(`${SUPA_URL}/rest/v1/${table}?${filter}`,{
+      method:'DELETE',
+      headers:{
+        'apikey':SUPA_KEY,
+        'Authorization':'Bearer '+SUPA_KEY,
+        'Content-Type':'application/json',
+        'Prefer':'return=minimal',
+      }
+    });
+    if(!res.ok){
+      const err=await res.text();
+      console.error(`supaDelete ${table} failed:`,res.status,err);
+    }
+    return res.ok;
+  }catch(e){console.error('supaDelete error:',e);return false;}
+}
+
 async function syncToSupabase(agreement){
   try {
     await supaFetch('agreements','POST',{
@@ -821,12 +841,21 @@ let agreements = JSON.parse(localStorage.getItem('k_ag')||'[]');
 let clientsDB  = JSON.parse(localStorage.getItem('k_cl')||'[]');
 let propsDB    = JSON.parse(localStorage.getItem('k_pr')||'[]');
 let questDB    = JSON.parse(localStorage.getItem('k_qu')||'[]');
+// Restore saved agent edits (id, license, nameEn) from localStorage
+(function loadSavedAgents(){
+  const saved = JSON.parse(localStorage.getItem('k_agents')||'[]');
+  if(saved.length) saved.forEach(sa=>{
+    const idx=AGENTS.findIndex(a=>a.name===sa.name);
+    if(idx>=0) Object.assign(AGENTS[idx],{nameEn:sa.nameEn||AGENTS[idx].nameEn,id:sa.id||'',license:sa.license||'',phone:sa.phone||''});
+  });
+})();
 
 function save(){
   localStorage.setItem('k_ag',JSON.stringify(agreements));
   localStorage.setItem('k_cl',JSON.stringify(clientsDB));
   localStorage.setItem('k_pr',JSON.stringify(propsDB));
   localStorage.setItem('k_qu',JSON.stringify(questDB));
+  localStorage.setItem('k_agents',JSON.stringify(AGENTS));
 }
 
 /* ══ INIT ══ */
@@ -1418,7 +1447,7 @@ function openAgreementView(id, returnTo){
   const a = agreements.find(x=>String(x.id)===String(id));
   if(!a){ alert('הסכם לא נמצא — נסה להיכנס ל"ההסכמים שלי" שוב כדי לסנכרן'); return; }
   viewingAgreementId = String(id);
-  viewReturnScreen = returnTo==='mgr' ? 'screen-mgr' : 'screen-my-ag';
+  viewReturnScreen = (returnTo==='mgr'||returnTo==='screen-mgr') ? 'screen-mgr' : (returnTo||'screen-my-ag');
   viewSigDrawn = false;
 
   // Set logos
@@ -2215,17 +2244,27 @@ function toggleSelect(type, id, cb){
   if(delBtn) delBtn.style.display = _selected[type].size>0 ? 'inline-block' : 'none';
 }
 
-function deleteSelected(type){
+async function deleteSelected(type){
   if(_selected[type].size===0) return;
   if(!confirm(`למחוק ${_selected[type].size} פריטים?`)) return;
-  if(type==='agreement') agreements=agreements.filter(a=>!_selected[type].has(String(a.id)));
-  else if(type==='client') clientsDB=clientsDB.filter(c=>!_selected[type].has(c.id||c.name));
-  else if(type==='property') propsDB=propsDB.filter(p=>!_selected[type].has(p.addr));
+  const ids=[..._selected[type]];
+  if(type==='agreement'){
+    agreements=agreements.filter(a=>!ids.includes(String(a.id)));
+    save(); renderAgreements();
+    await Promise.all(ids.map(id=>supaDelete('agreements',`id=eq.${id}`)));
+  } else if(type==='client'){
+    clientsDB=clientsDB.filter(c=>!ids.includes(c.id||c.name));
+    save(); renderClients();
+    await Promise.all(ids.map(id=>supaDelete('clients',`id=eq.${encodeURIComponent(id)}`)));
+  } else if(type==='property'){
+    propsDB=propsDB.filter(p=>!ids.includes(p.addr));
+    save(); renderProperties();
+    await Promise.all(ids.map(id=>supaDelete('properties',`addr=eq.${encodeURIComponent(id)}`)));
+  }
   _selected[type].clear();
-  save(); refreshMgrStats();
-  if(type==='agreement') renderAgreements();
-  else if(type==='client') renderClients();
-  else renderProperties();
+  refreshMgrStats();
+  const delBtn=document.getElementById(`del-sel-${type==='agreement'?'ags':type==='client'?'cls':'props'}`);
+  if(delBtn) delBtn.style.display='none';
 }
 
 function refreshMgrStats(){
@@ -2330,15 +2369,26 @@ function saveMgrEdit(){
     } else {
       AGENTS.push({name:f1,nameEn:f2,phone:'',id:f3,license:f4});
     }
+    save();
     document.getElementById('mgr-edit-modal').remove(); renderAgents();
   }
 }
 
-function deleteItem(type, id){
+async function deleteItem(type, id){
   if(!confirm('למחוק?')) return;
-  if(type==='client'){clientsDB=clientsDB.filter(c=>(c.id||c.name)!==id);save();renderClients();}
-  else if(type==='agreement'){agreements=agreements.filter(a=>String(a.id)!==String(id));save();renderAgreements();}
-  else if(type==='property'){propsDB=propsDB.filter(p=>p.addr!==id);save();renderProperties();}
+  if(type==='client'){
+    clientsDB=clientsDB.filter(c=>(c.id||c.name)!==id);
+    save(); renderClients();
+    await supaDelete('clients',`id=eq.${encodeURIComponent(id)}`);
+  } else if(type==='agreement'){
+    agreements=agreements.filter(a=>String(a.id)!==String(id));
+    save(); renderAgreements();
+    await supaDelete('agreements',`id=eq.${id}`);
+  } else if(type==='property'){
+    propsDB=propsDB.filter(p=>p.addr!==id);
+    save(); renderProperties();
+    await supaDelete('properties',`addr=eq.${encodeURIComponent(id)}`);
+  }
   refreshMgrStats();
 }
 
@@ -2457,15 +2507,32 @@ function renderAgents(){
 }
 
 /* ══ MANAGER LOAD ══ */
-function loadMgr(){
-  const today=new Date().toLocaleDateString('he-IL');
-  document.getElementById('mgr-stats').innerHTML=`
-    <div class="stat-card"><div class="stat-num">${agreements.length}</div><div class="stat-lbl">הסכמים</div></div>
-    <div class="stat-card"><div class="stat-num">${agreements.filter(a=>a.dateStr===today).length}</div><div class="stat-lbl">היום</div></div>
-    <div class="stat-card"><div class="stat-num">${clientsDB.length}</div><div class="stat-lbl">לקוחות</div></div>`;
+async function loadMgr(){
+  document.getElementById('mgr-stats').innerHTML='<div style="grid-column:span 3;text-align:center;color:var(--gray);font-size:12px">⏳ טוען...</div>';
+  // Always sync fresh from Supabase so deletions from any device are reflected
+  try{
+    const res=await fetch(`${SUPA_URL}/rest/v1/agreements?order=created_at.desc&limit=500`,{
+      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
+    });
+    const rows=await res.json();
+    if(rows&&!rows.error){
+      agreements=rows.map(r=>({
+        id:r.id,type:r.type,typeName:r.type_name,
+        agent:r.agent,agentEn:r.agent_en||'',agentPhone:r.agent_phone||'',agentLicense:r.agent_license||'',
+        clientName:r.client_name,clientId:r.client_id||'',clientPhone:r.client_phone,
+        addr:r.addr,saleFee:r.sale_fee,rentFee:r.rent_fee,
+        vatSale:r.vat_sale,vatRent:r.vat_rent,notes:r.notes||'',
+        lang:r.lang||'he',excl:r.excl||false,exclFrom:r.excl_from||'',exclTo:r.excl_to||'',
+        sig:r.signature||'',date:r.created_at,dateStr:r.date_str,
+        pendingSign:r.pending_sign||false,
+      }));
+      save();
+    }
+  }catch(e){console.log('mgr sync err',e);}
+  refreshMgrStats();
   const fa=document.getElementById('fil-agent');
   fa.innerHTML='<option value="">כל הסוכנים</option>';
-  [...new Set(agreements.map(a=>a.agent))].forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;fa.appendChild(o);});
+  [...new Set(agreements.map(a=>a.agent))].sort().forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;fa.appendChild(o);});
   renderAgreements(); renderClients(); renderProperties(); renderAgents();
 }
 
