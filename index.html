@@ -236,10 +236,6 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
     <div class="type-grid">
       <div class="type-card full" onclick="startCollabForm()" style="background:#F3E5F5;border-color:#CE93D8"><div class="type-icon">🤝</div><div class="type-name">הסכם שיתוף פעולה</div><div class="type-desc">בין מתווכים על נכס משותף</div></div>
     </div>
-    <div class="sec-title">שת״פ מתווכים</div>
-    <div class="type-grid">
-      <div class="type-card full" onclick="startCollabForm()" style="background:#F3E5F5;border-color:#CE93D8"><div class="type-icon">🤝</div><div class="type-name">הסכם שיתוף פעולה</div><div class="type-desc">בין מתווכים על נכס משותף</div></div>
-    </div>
     <div class="sec-title">כלים</div>
     <div class="type-grid">
       <div class="type-card full" onclick="showMyAgreements()" style="background:var(--gold-pale);border-color:var(--gold)"><div class="type-icon">📂</div><div class="type-name">ההסכמים שלי</div><div class="type-desc">צפה בהסכמים שהחתמת</div></div>
@@ -960,7 +956,10 @@ window.onload = async function(){
   // Build grid immediately - never block on Supabase
   buildAgentGrid();
   // Sync Supabase in background
-  loadAgentsFromSupa().then(()=>buildAgentGrid()).catch(()=>{});
+  loadAgentsFromSupa().then(()=>{
+    buildAgentGrid();
+    syncAgentsToSupa();
+  }).catch(()=>{});
   // Set real logos
   // Dark backgrounds: mix-blend-mode screen makes black transparent, gold shows
   document.querySelectorAll('#login-logo-img,#hdr-logo-img,#view-hdr-logo').forEach(el=>{
@@ -2412,26 +2411,33 @@ async function syncAgentsToSupa(){
 
 async function loadAgentsFromSupa(){
   try{
-    const res=await fetch(`${SUPA_URL}/rest/v1/agents?select=*`,{
+    const res=await fetch(`${SUPA_URL}/rest/v1/agents?select=*&order=name.asc`,{
       headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
     });
     const rows=await res.json();
     if(rows&&!rows.error&&rows.length){
+      // Supabase is source of truth — rebuild AGENTS from it
+      // Keep only agents that exist in Supabase
+      const supaNames = new Set(rows.map(r=>r.name));
+      // Remove agents not in Supabase (deleted by manager)
+      for(let i=AGENTS.length-1;i>=0;i--){
+        if(!supaNames.has(AGENTS[i].name)) AGENTS.splice(i,1);
+      }
+      // Add/update from Supabase
       rows.forEach(r=>{
         const idx=AGENTS.findIndex(a=>a.name===r.name);
         if(idx>=0){
-          // Update existing agent details
           AGENTS[idx].nameEn=r.name_en||AGENTS[idx].nameEn||'';
           AGENTS[idx].id=r.agent_id||'';
           AGENTS[idx].license=r.license||'';
           AGENTS[idx].phone=r.phone||AGENTS[idx].phone||'';
         } else {
-          // Add new agent that was added by manager from Supabase
           AGENTS.push({name:r.name,nameEn:r.name_en||'',id:r.agent_id||'',license:r.license||'',phone:r.phone||''});
         }
       });
       save();
     }
+    // If Supabase returns empty (table not set up yet), keep defaults
   }catch(e){console.log('load agents err',e);}
 }
 
