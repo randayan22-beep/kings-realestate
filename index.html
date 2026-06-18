@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Kings Jerusalem</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Heebo:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -2597,7 +2600,7 @@ function showEditModal(type, f1, f2, f3, f4){
   document.body.appendChild(modal);
 }
 
-function saveMgrEdit(){
+async function saveMgrEdit(){
   const f1=(document.getElementById('em-f1')?.value||'').trim();
   if(!f1){alert('נא למלא שדה חובה');return;}
   const f2=(document.getElementById('em-f2')?.value||'').trim();
@@ -2615,14 +2618,29 @@ function saveMgrEdit(){
     const f4=(document.getElementById('em-f4')?.value||'').trim();
     if(_editId){
       const idx=AGENTS.findIndex(a=>a.name===_editId);
-      if(idx>=0){AGENTS[idx].name=f1;AGENTS[idx].nameEn=f2;AGENTS[idx].id=f3;AGENTS[idx].license=f4;}
+      if(idx>=0){
+        const oldName=_editId;
+        AGENTS[idx].name=f1;AGENTS[idx].nameEn=f2;AGENTS[idx].id=f3;AGENTS[idx].license=f4;
+        save();
+        // If name changed: delete old record, insert new one
+        if(oldName!==f1) await supaDelete('agents',`name=eq.${encodeURIComponent(oldName)}`);
+        await fetch(`${SUPA_URL}/rest/v1/agents`,{
+          method:'POST',
+          headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
+          body:JSON.stringify({name:f1,name_en:f2,agent_id:f3,license:f4,phone:AGENTS[idx].phone||''})
+        });
+      }
     } else {
       AGENTS.push({name:f1,nameEn:f2,phone:'',id:f3,license:f4});
+      save();
+      await fetch(`${SUPA_URL}/rest/v1/agents`,{
+        method:'POST',
+        headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
+        body:JSON.stringify({name:f1,name_en:f2,agent_id:f3,license:f4,phone:''})
+      });
     }
-    save();
-    syncAgentsToSupa();
     document.getElementById('mgr-edit-modal').remove(); renderAgents();
-    buildAgentGrid(); // Rebuild login grid so new agent appears
+    buildAgentGrid();
   }
 }
 
