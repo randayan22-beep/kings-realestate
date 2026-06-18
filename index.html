@@ -998,7 +998,107 @@ function loginAgent(a){
   document.getElementById('hdr-agent').textContent=a.name;
   document.getElementById('dash-greeting').textContent='שלום, '+a.name+'!';
   showScreen('screen-dash');
+  // Request push notification permission
+  requestNotifPermission();
+  // Check for newly signed agreements since last visit
+  setTimeout(()=>checkNewlySigned(a.name), 1500);
+  // Start background polling (every 60s while app is open)
+  startBgPolling(a.name);
 }
+
+/* ══ NOTIFICATIONS ══ */
+function requestNotifPermission(){
+  if('Notification' in window && Notification.permission==='default'){
+    Notification.requestPermission();
+  }
+}
+
+function sendPushNotif(title, body){
+  if('Notification' in window && Notification.permission==='granted'){
+    new Notification(title, {
+      body,
+      icon: LOGO_DARK,
+      badge: LOGO_DARK,
+      tag: 'kings-sign',
+      renotify: true,
+    });
+  }
+}
+
+async function checkNewlySigned(agentName){
+  try{
+    // Get last-seen timestamp from localStorage
+    const lastKey = 'k_lastseen_'+agentName;
+    const lastSeen = localStorage.getItem(lastKey) || '2000-01-01';
+
+    // Fetch agreements signed after lastSeen
+    const res = await fetch(
+      `${SUPA_URL}/rest/v1/agreements?agent=eq.${encodeURIComponent(agentName)}&signature=neq.&pending_sign=eq.false&created_at=gt.${lastSeen}&select=id,client_name,addr,date_str`,
+      {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}}
+    );
+    const rows = await res.json();
+    if(rows && !rows.error && rows.length > 0){
+      // Show banner
+      showSignedBanner(rows);
+      // Update lastSeen to now
+      localStorage.setItem(lastKey, new Date().toISOString());
+    } else {
+      // Still update lastSeen even if nothing new
+      if(lastSeen==='2000-01-01') localStorage.setItem(lastKey, new Date().toISOString());
+    }
+  }catch(e){console.log('notif check err',e);}
+}
+
+function showSignedBanner(rows){
+  // Remove existing banner
+  const existing = document.getElementById('signed-banner');
+  if(existing) existing.remove();
+
+  const dash = document.getElementById('screen-dash');
+  if(!dash) return;
+
+  const names = rows.map(r=>r.client_name).join('، ');
+  const count = rows.length;
+  const msg = count===1
+    ? `✅ ${rows[0].client_name} חתם על ההסכם עבור ${rows[0].addr}`
+    : `✅ ${count} הסכמים חדשים נחתמו: ${names}`;
+
+  const banner = document.createElement('div');
+  banner.id = 'signed-banner';
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999;background:linear-gradient(135deg,#1A4A1A,#2E7D2E);color:#fff;padding:12px 16px;font-family:Heebo,sans-serif;font-size:13px;font-weight:600;text-align:center;direction:rtl;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,0.3)';
+  banner.innerHTML = `${msg} &nbsp;<span style="opacity:0.7;font-size:11px;font-weight:400">לחץ לצפייה</span>`;
+  banner.onclick = ()=>{ banner.remove(); showMyAgreements(); };
+  document.body.appendChild(banner);
+  // Auto-dismiss after 8 seconds
+  setTimeout(()=>{ if(banner.parentNode) banner.remove(); }, 8000);
+
+  // Also send push notification
+  sendPushNotif('Kings Jerusalem — הסכם נחתם! ✅', msg);
+}
+
+/* ══ BACKGROUND POLLING — notify when app is in background ══ */
+let _bgInterval = null;
+function startBgPolling(agentName){
+  if(_bgInterval) clearInterval(_bgInterval);
+  // Check every 60 seconds if new signatures arrived
+  _bgInterval = setInterval(async ()=>{
+    if(document.hidden) return; // only poll when tab is visible
+    try{
+      const lastKey = 'k_lastseen_'+agentName;
+      const lastSeen = localStorage.getItem(lastKey) || '2000-01-01';
+      const res = await fetch(
+        `${SUPA_URL}/rest/v1/agreements?agent=eq.${encodeURIComponent(agentName)}&signature=neq.&pending_sign=eq.false&created_at=gt.${lastSeen}&select=id,client_name,addr`,
+        {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}}
+      );
+      const rows = await res.json();
+      if(rows && !rows.error && rows.length > 0){
+        showSignedBanner(rows);
+        localStorage.setItem(lastKey, new Date().toISOString());
+      }
+    }catch(e){}
+  }, 60000); // every 60 seconds
+}
+
 function loginMgr(){
   const v=document.getElementById('mgr-pwd').value;
   if(v===MGR_PWD){
