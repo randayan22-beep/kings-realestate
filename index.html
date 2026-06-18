@@ -961,7 +961,6 @@ window.onload = async function(){
   // Sync Supabase in background
   loadAgentsFromSupa().then(()=>{
     buildAgentGrid();
-    syncAgentsToSupa();
   }).catch(()=>{});
   // Set real logos
   // Dark backgrounds: mix-blend-mode screen makes black transparent, gold shows
@@ -2622,22 +2621,25 @@ async function saveMgrEdit(){
         const oldName=_editId;
         AGENTS[idx].name=f1;AGENTS[idx].nameEn=f2;AGENTS[idx].id=f3;AGENTS[idx].license=f4;
         save();
-        // If name changed: delete old record, insert new one
-        if(oldName!==f1) await supaDelete('agents',`name=eq.${encodeURIComponent(oldName)}`);
-        await fetch(`${SUPA_URL}/rest/v1/agents`,{
-          method:'POST',
-          headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
-          body:JSON.stringify({name:f1,name_en:f2,agent_id:f3,license:f4,phone:AGENTS[idx].phone||''})
-        });
+        // PATCH the existing record in Supabase
+        try{
+          await fetch(`${SUPA_URL}/rest/v1/agents?name=eq.${encodeURIComponent(oldName)}`,{
+            method:'PATCH',
+            headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+            body:JSON.stringify({name:f1,name_en:f2,agent_id:f3,license:f4})
+          });
+        }catch(e){console.log('agent patch err',e);}
       }
     } else {
       AGENTS.push({name:f1,nameEn:f2,phone:'',id:f3,license:f4});
       save();
-      await fetch(`${SUPA_URL}/rest/v1/agents`,{
-        method:'POST',
-        headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
-        body:JSON.stringify({name:f1,name_en:f2,agent_id:f3,license:f4,phone:''})
-      });
+      try{
+        await fetch(`${SUPA_URL}/rest/v1/agents`,{
+          method:'POST',
+          headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
+          body:JSON.stringify({name:f1,name_en:f2,agent_id:f3,license:f4,phone:''})
+        });
+      }catch(e){console.log('agent insert err',e);}
     }
     document.getElementById('mgr-edit-modal').remove(); renderAgents();
     buildAgentGrid();
