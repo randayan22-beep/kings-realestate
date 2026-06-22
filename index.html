@@ -172,7 +172,11 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
 /* SEND LINK */
 .btn-export{background:var(--gold-pale);border:1px solid var(--gold);border-radius:8px;padding:7px 12px;font-family:'Heebo',sans-serif;font-size:11px;font-weight:600;color:#7A5010;cursor:pointer;margin-bottom:8px;margin-left:4px}
 .btn-del{background:#FFF5F5;border:1px solid #FFCDD2;border-radius:6px;padding:4px 8px;font-size:10px;color:#C62828;cursor:pointer;font-family:'Heebo',sans-serif}
-.btn-edit-sm{background:var(--gold-pale);border:1px solid var(--gold);border-radius:6px;padding:4px 8px;font-size:10px;color:#7A5010;cursor:pointer;font-family:'Heebo',sans-serif}border-radius:8px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:11px;font-weight:600;color:#7A5010;cursor:pointer;white-space:nowrap;display:block;width:100%;margin-top:6px;text-align:center}
+.btn-edit-sm{background:var(--gold-pale);border:1px solid var(--gold);border-radius:6px;padding:4px 8px;font-size:10px;color:#7A5010;cursor:pointer;font-family:'Heebo',sans-serif}
+.btn-send-link{background:var(--gold-pale);border:1px solid var(--gold);border-radius:8px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:11px;font-weight:600;color:#7A5010;cursor:pointer;white-space:nowrap;display:inline-block;margin-top:6px;text-align:center}
+.screen-body{padding:16px 14px;flex:1;overflow-y:auto}
+.ac-dropdown{display:none;position:absolute;top:100%;right:0;left:0;background:var(--white);border:1px solid var(--gold);border-radius:0 0 8px 8px;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,0.12);max-height:200px;overflow-y:auto}
+.ac-dropdown.open{display:block}
 /* REMOTE SIGN */
 #screen-remote{background:var(--light-gray)}
 .remote-body{padding:20px 16px;flex:1}
@@ -217,7 +221,7 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
 <div class="screen" id="screen-dash">
   <div class="app-header">
     <div class="hlogo" style="display:flex;align-items:center;gap:8px"><img id="hdr-logo-img" style="height:52px;width:auto;mix-blend-mode:screen;filter:brightness(1.5) contrast(1.2)" src="" alt="Kings"></div>
-    <div class="hbadge" id="hdr-agent">סוכן</div>
+    <div class="hbadge" id="hdr-agent" onclick="showScreen('screen-login')" style="cursor:pointer" title="יציאה">סוכן</div>
   </div>
   <div class="dash-body">
     <div class="greeting" id="dash-greeting">שלום!</div>
@@ -351,17 +355,23 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
     <button class="hback" onclick="showScreen('screen-dash')">← חזור</button>
   </div>
   <div class="screen-body">
-    <div style="background:#F3E5F5;border:1px solid #CE93D8;border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:12px;color:#4A1060;line-height:1.6">🤝 <strong>הסכם שיתוף פעולה בין מתווכים</strong><br>ממלאים פרטי הסוכנים המשתפים פעולה ופרטי הנכס.</div>
-    <div class="fcard">
-      <div class="fcard-title">סוכן 1 — הצד המציג</div>
-      <div class="fgroup"><label class="flabel">שם הסוכן *</label><input class="finput" id="cb-agent1" type="text" placeholder="שם מלא"></div>
-      <div class="fgroup"><label class="flabel">טלפון</label><input class="finput" id="cb-phone1" type="tel" dir="ltr"></div>
+    <div style="background:#F3E5F5;border:1px solid #CE93D8;border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:12px;color:#4A1060;line-height:1.6">🤝 <strong>הסכם שיתוף פעולה בין מתווכים</strong><br>הסוכן שלנו נכנס אוטומטית — מלאו את פרטי הסוכן/ים החיצוניים שיחתמו.</div>
+    <!-- Our agent — auto-filled, read-only -->
+    <div class="fcard" style="background:#1C1C1C;border-color:rgba(184,150,62,0.3)">
+      <div class="fcard-title" style="color:var(--gold)">הסוכן שלנו (מגיש ההסכם)</div>
+      <div id="cb-our-agent-display" style="color:rgba(255,255,255,0.85);font-size:14px;font-weight:600;padding:4px 0">—</div>
+      <div id="cb-our-agent-phone-display" style="color:rgba(255,255,255,0.45);font-size:11px;margin-top:2px"></div>
     </div>
+    <!-- External agent — will sign -->
     <div class="fcard">
-      <div class="fcard-title">סוכן 2 — הצד המביא</div>
+      <div class="fcard-title">סוכן חיצוני — יחתום על ההסכם</div>
       <div class="fgroup"><label class="flabel">שם הסוכן *</label><input class="finput" id="cb-agent2" type="text" placeholder="שם מלא"></div>
-      <div class="fgroup"><label class="flabel">טלפון</label><input class="finput" id="cb-phone2" type="tel" dir="ltr"></div>
+      <div class="fgroup"><label class="flabel">טלפון (לשליחת ההסכם) *</label><input class="finput" id="cb-phone2" type="tel" dir="ltr" placeholder="05X-XXXXXXX"></div>
     </div>
+    <!-- Additional agents container -->
+    <div id="cb-extra-agents-container"></div>
+    <button onclick="addCollabAgent()" class="btn-export" style="width:100%;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box">➕ הוספת סוכן להסכם</button>
+    <!-- Property -->
     <div class="fcard">
       <div class="fcard-title">פרטי הנכס</div>
       <div class="fgroup"><label class="flabel">כתובת הנכס *</label>
@@ -370,11 +380,6 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
       <div class="fgroup"><label class="flabel">מחיר / שכירות</label><input class="finput" id="cb-price" type="text" placeholder="₪ 0,000,000 (אופציונלי)"></div>
       <div class="fgroup"><label class="flabel">עמלת מכירה (% מכל צד)</label><input class="finput" id="cb-sale-fee" type="number" step="0.1" min="0" value="1"></div>
       <div class="fgroup"><label class="flabel">עמלת שכירות (חודשים מכל צד)</label><input class="finput" id="cb-rent-fee" type="number" step="0.5" min="0" value="0.5"></div>
-    </div>
-    <div class="fcard">
-      <div class="fcard-title">לקוח (אופציונלי)</div>
-      <div class="fgroup"><label class="flabel">שם הלקוח</label><input class="finput" id="cb-client" type="text" placeholder="אופציונלי — אם ההסכם לגבי לקוח ספציפי"></div>
-      <div class="fgroup"><label class="flabel">טלפון לקוח</label><input class="finput" id="cb-cphone" type="tel" dir="ltr" placeholder="אופציונלי"></div>
     </div>
     <div class="fcard">
       <div class="fcard-title">הערות</div>
@@ -398,15 +403,18 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
       </div>
       <textarea id="collab-contract-ta" style="width:100%;min-height:260px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:11px;line-height:1.85;color:var(--gray);resize:vertical;direction:rtl"></textarea>
     </div>
+    <!-- Summary of who will sign -->
+    <div id="collab-sign-summary" style="background:#F3E5F5;border:1px solid #CE93D8;border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:12px;color:#4A1060;line-height:1.7"></div>
     <div class="sig-wrap">
-      <div class="sig-label">חתימת הסוכנים — חתמו כאן באצבע</div>
+      <div class="sig-label" id="collab-sig-label">חתימת הסוכן החיצוני — חתמו כאן באצבע</div>
       <div class="sig-canvas-wrap"><canvas id="collab-sig-c"></canvas><div class="sig-hint" id="collab-sig-hint">חתום/י כאן</div></div>
       <div class="sig-actions">
         <button class="btn-clear" onclick="clearSig('collab-sig-c','collab-sig-hint')">נקה</button>
         <button class="btn-submit" onclick="submitCollab(true)">חתום ושמור ←</button>
       </div>
-      <button onclick="submitCollab(false)" style="width:100%;margin-top:8px;background:none;border:1px solid var(--border);border-radius:8px;padding:11px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--gray);cursor:pointer">שלח לחתימה בדיעבד</button>
+      <button onclick="submitCollab(false)" style="width:100%;margin-top:8px;background:none;border:1px solid var(--border);border-radius:8px;padding:11px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--gray);cursor:pointer">שלח לחתימה מאוחר יותר ←</button>
     </div>
+    <button onclick="showScreen('screen-dash')" style="width:100%;margin-top:12px;margin-bottom:24px;background:none;border:1px solid var(--gold);color:var(--gold);border-radius:10px;padding:11px;font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer">← חזור לתפריט הראשי</button>
   </div>
 </div>
 
@@ -415,6 +423,7 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
   <div class="app-header">
     <div class="hlogo" style="display:flex;align-items:center;gap:8px"><img id="hdr-logo-img" style="height:52px;width:auto;mix-blend-mode:screen;filter:brightness(1.5) contrast(1.2)" src="" alt="Kings"></div>
     <button class="hback" onclick="showScreen('screen-form')">← חזור</button>
+    <button class="hback" onclick="showScreen('screen-dash')" style="border-color:rgba(184,150,62,0.4);color:#B8963E;margin-right:4px">🏠</button>
   </div>
   <div class="sign-body">
     <div class="fcard"><div class="fcard-title">סיכום</div><div id="sign-summary"></div></div>
@@ -457,6 +466,7 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
   <div class="ok-title">ההסכם נחתם!</div>
   <div class="ok-sub" id="ok-sub">ההסכם נשמר במערכת.</div>
   <div class="ok-actions">
+    <button onclick="showScreen('screen-dash')" style="width:100%;background:none;border:1px solid var(--gold);border-radius:10px;padding:10px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--gold);cursor:pointer;margin-bottom:4px">← חזור לתפריט הראשי</button>
     <button class="btn-dl" onclick="dlPDF()">⬇️ הורד PDF</button>
     <a class="btn-wa" id="wa-btn" href="#" onclick="if(!this.dataset.sent){this.dataset.sent=1;sendWA();}return false;">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -464,6 +474,7 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
     </a>
     <button class="btn-wa" id="share-btn" onclick="shareLastAgreement()" style="background:#075E54;margin-top:0">📤 שתף PDF בוואטסאפ</button>
     <button class="btn-new" onclick="showScreen('screen-dash')">+ הסכם חדש</button>
+    <button class="btn-new" onclick="showMyAgreements()" style="margin-top:4px">📂 ההסכמים שלי</button>
     <button class="btn-new" onclick="showScreen('screen-dash')" style="margin-top:4px;color:var(--gold);border-color:var(--gold)">← חזור לתפריט הראשי</button>
   </div>
 </div>
@@ -589,6 +600,7 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
 <div class="screen" id="screen-my-ag">
   <div class="app-header">
     <div class="hlogo"><img id="hdr-logo-img" style="height:48px;width:auto;mix-blend-mode:screen;filter:brightness(1.6) contrast(1.3)" src="" alt="Kings"><span style="color:var(--gold-light);font-size:11px;font-weight:600">ההסכמים שלי</span></div>
+    <button class="hback" onclick="showMyAgreements()" style="border-color:rgba(184,150,62,0.4);color:#B8963E;margin-right:4px">🔄</button>
     <button class="hback" onclick="showScreen('screen-dash')">← חזור</button>
   </div>
   <div class="mgr-body">
@@ -617,6 +629,7 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
 <div class="screen" id="screen-remote">
   <div class="app-header">
     <div class="hlogo"><img id="hdr-logo-img" style="height:48px;width:auto;mix-blend-mode:screen;filter:brightness(1.6) contrast(1.3)" src="" alt="Kings"><span style="color:var(--gold-light);font-size:11px;font-weight:600">חתימה דיגיטלית</span></div>
+    <button class="hback" onclick="showScreen(window._lastAgent?'screen-dash':'screen-login')" style="border-color:rgba(184,150,62,0.4);color:#B8963E">← ראשי</button>
   </div>
   <div class="remote-body">
     <div class="fcard" style="text-align:center;padding:20px">
@@ -681,9 +694,13 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
         </div>
       </div>
     </div>
-    <!-- Download button -->
-    <button class="btn-dl" onclick="dlViewPDF()" style="width:100%;margin-bottom:8px;border-radius:10px">⬇️ הורד הסכם PDF</button>
-    <div style="height:24px"></div>
+    <!-- Action buttons -->
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px">
+      <button class="btn-dl" onclick="dlViewPDF()" style="width:100%;border-radius:10px">⬇️ הורד הסכם PDF</button>
+      <button onclick="sendRemoteLink(viewingAgreementId)" style="width:100%;background:#25D366;border:none;border-radius:10px;padding:13px;font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;color:#fff;cursor:pointer">✍🏻 שלח לחתימה בוואטסאפ</button>
+      <button onclick="shareAgreementWA(viewingAgreementId)" style="width:100%;background:#075E54;border:none;border-radius:10px;padding:13px;font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;color:#fff;cursor:pointer">📤 שתף PDF בוואטסאפ</button>
+      <button onclick="showScreen(viewReturnScreen)" style="width:100%;background:none;border:1px solid var(--border);border-radius:10px;padding:11px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--gray);cursor:pointer">← חזור</button>
+    </div>
   </div>
 </div>
 
@@ -691,6 +708,7 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
 <div class="screen" id="screen-mgr">
   <div class="app-header">
     <div class="hlogo"><img id="hdr-logo-img" style="height:48px;width:auto;mix-blend-mode:screen;filter:brightness(1.6) contrast(1.3)" src="" alt="Kings"><span style="color:var(--gold-light);font-size:11px;font-weight:600">לוח בקרה מנהל</span></div>
+    <button class="hback" onclick="showScreen(window._lastAgent?'screen-dash':'screen-login')" style="border-color:rgba(255,184,62,0.4);color:#B8963E">← ראשי</button>
     <button class="hback" onclick="showScreen('screen-login')" style="border-color:rgba(255,100,100,0.4);color:#FF8A80">יציאה</button>
   </div>
   <div class="mgr-body">
@@ -766,6 +784,7 @@ const FNAMES = {
 const TBADGES = {
   'owner-sale':['t-sale','מכירה'],'owner-rent':['t-rent','השכרה'],'owner-both':['t-rent','משולב'],
   'buyer':['t-buyer','קונה'],'renter':['t-rent','שוכר'],'both-client':['t-buyer','מתעניין'],
+  'collab':['t-collab','שת"פ'],
 };
 
 /* ══ SUPABASE CONFIG ══ */
@@ -797,18 +816,23 @@ const SUPA_KEY = 'sb_publishable_j7O4b-RIekwYLY_FWaIx9g_BN3jLSCY';
 async function supaFetch(table, method, body, upsert=false){
   const url = `${SUPA_URL}/rest/v1/${table}`;
   const prefer = method==='POST' ? (upsert ? 'resolution=merge-duplicates' : 'return=minimal') : '';
-  const res = await fetch(method==='GET' ? url+'?order=created_at.desc&limit=1000' : url, {
-    method,
-    headers:{
-      'apikey': SUPA_KEY,
-      'Authorization': 'Bearer '+SUPA_KEY,
-      'Content-Type': 'application/json',
-      'Prefer': prefer,
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  if(method==='GET') return res.json();
-  return res;
+  try {
+    const res = await fetch(method==='GET' ? url+'?order=created_at.desc&limit=1000' : url, {
+      method,
+      headers:{
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer '+SUPA_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': prefer,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if(method==='GET') return res.json().catch(()=>null);
+    return res;
+  } catch(e) {
+    console.log('supaFetch error',table,method,e);
+    return null;
+  }
 }
 
 async function supaDelete(table, filter){
@@ -838,34 +862,26 @@ async function syncToSupabase(agreement){
       type: agreement.type,
       type_name: agreement.typeName,
       agent: agreement.agent,
+      agent_en: agreement.agentEn||'',
       agent_phone: agreement.agentPhone||'',
       agent_license: agreement.agentLicense||'',
       client_name: agreement.clientName,
-      client_id: agreement.clientId,
-      client_phone: agreement.clientPhone,
+      client_id: agreement.clientId||'',
+      client_phone: agreement.clientPhone||'',
       addr: agreement.addr,
-      sale_fee: agreement.saleFee||'',
-      rent_fee: agreement.rentFee||'',
+      sale_fee: agreement.saleFee,
+      rent_fee: agreement.rentFee,
       vat_sale: agreement.vatSale||false,
       vat_rent: agreement.vatRent||false,
       notes: agreement.notes||'',
-      lang: agreement.lang,
+      lang: agreement.lang||'he',
       excl: agreement.excl||false,
       excl_from: agreement.exclFrom||'',
       excl_to: agreement.exclTo||'',
       signature: agreement.sig||'',
-      date_str: agreement.dateStr,
+      date_str: agreement.dateStr||'',
       pending_sign: agreement.pendingSign||false,
-    });
-    // sync client (upsert)
-    const ci = clientsDB.find(c=>c.id===agreement.clientId);
-    if(ci) await supaFetch('clients','POST',{
-      id: ci.id, name: ci.name, phone: ci.phone, seen: ci.seen
-    }, true);
-    // sync property (upsert)
-    const pi = propsDB.find(p=>p.addr===agreement.addr);
-    if(pi) await supaFetch('properties','POST',{
-      addr: pi.addr, cnt: pi.cnt, agents: pi.agents, seen: pi.seen
+      custom_text: agreement.customText||'',
     }, true);
   } catch(e){ console.log('Supabase sync error:',e); }
 }
@@ -891,20 +907,26 @@ async function loadFromSupabase(){
       supaFetch('clients','GET'),
       supaFetch('properties','GET'),
     ]);
-    if(ags&&ags.length){
+    if(ags && Array.isArray(ags) && ags.length){
       agreements = ags.map(a=>({
         id:a.id, type:a.type, typeName:a.type_name,
-        agent:a.agent, agentPhone:a.agent_phone, agentLicense:a.agent_license,
-        clientName:a.client_name, clientId:a.client_id, clientPhone:a.client_phone,
-        addr:a.addr, saleFee:a.sale_fee, rentFee:a.rent_fee,
-        vatSale:a.vat_sale, vatRent:a.vat_rent, notes:a.notes,
-        lang:a.lang, excl:a.excl, exclFrom:a.excl_from, exclTo:a.excl_to,
-        sig:a.signature, dateStr:a.date_str, date:a.created_at,
+        agent:a.agent, agentEn:a.agent_en||'', agentPhone:a.agent_phone||'', agentLicense:a.agent_license||'',
+        clientName:a.client_name, clientId:a.client_id||'', clientPhone:a.client_phone||'',
+        addr:a.addr||'', saleFee:a.sale_fee, rentFee:a.rent_fee,
+        vatSale:a.vat_sale, vatRent:a.vat_rent, notes:a.notes||'',
+        lang:a.lang||'he', excl:a.excl||false, exclFrom:a.excl_from||'', exclTo:a.excl_to||'',
+        sig:a.signature||'', dateStr:a.date_str||'', date:a.created_at,
+        pendingSign:a.pending_sign||false,
+        customText:a.custom_text||'',
+        customText:a.custom_text||'',
+        collabOurAgent:a.agent||'', collabOurPhone:a.agent_phone||'',
+        collabAgent2:a.client_name||'', collabPhone2:a.client_phone||'',
+        collabExtraAgents:[], collabPrice:'',
       }));
       localStorage.setItem('k_ag',JSON.stringify(agreements));
     }
-    if(cls&&cls.length){ clientsDB=cls.map(c=>({id:c.id,name:c.name,phone:c.phone,seen:c.seen})); localStorage.setItem('k_cl',JSON.stringify(clientsDB)); }
-    if(prs&&prs.length){ propsDB=prs.map(p=>({addr:p.addr,cnt:p.cnt,agents:p.agents||[],seen:p.seen})); localStorage.setItem('k_pr',JSON.stringify(propsDB)); }
+    if(cls && Array.isArray(cls) && cls.length){ clientsDB=cls.map(c=>({id:c.id,name:c.name,phone:c.phone,seen:c.seen})); localStorage.setItem('k_cl',JSON.stringify(clientsDB)); }
+    if(prs && Array.isArray(prs) && prs.length){ propsDB=prs.map(p=>({addr:p.addr,cnt:p.cnt,agents:p.agents||[],seen:p.seen})); localStorage.setItem('k_pr',JSON.stringify(propsDB)); }
   } catch(e){ console.log('Supabase load error:',e); }
 }
 
@@ -995,6 +1017,7 @@ window.onload = async function(){
 /* ══ AUTH ══ */
 function loginAgent(a){
   agent=a;
+  window._lastAgent=a;
   document.getElementById('hdr-agent').textContent=a.name;
   document.getElementById('dash-greeting').textContent='שלום, '+a.name+'!';
   showScreen('screen-dash');
@@ -1031,20 +1054,26 @@ async function checkNewlySigned(agentName){
     const lastKey = 'k_lastseen_'+agentName;
     const lastSeen = localStorage.getItem(lastKey) || '2000-01-01';
 
-    // Fetch agreements signed after lastSeen
+    // Fetch agreements signed after lastSeen — check both created_at and updated_at
+    // because remote signatures update existing rows
     const res = await fetch(
-      `${SUPA_URL}/rest/v1/agreements?agent=eq.${encodeURIComponent(agentName)}&signature=neq.&pending_sign=eq.false&created_at=gt.${lastSeen}&select=id,client_name,addr,date_str`,
+      `${SUPA_URL}/rest/v1/agreements?agent=eq.${encodeURIComponent(agentName)}&signature=neq.&pending_sign=eq.false&updated_at=gt.${encodeURIComponent(lastSeen)}&select=id,client_name,addr,date_str,updated_at`,
       {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}}
     );
     const rows = await res.json();
-    if(rows && !rows.error && rows.length > 0){
-      // Show banner
-      showSignedBanner(rows);
-      // Update lastSeen to now
+    if(rows && !rows.error){
+      // Filter: only show rows updated after lastSeen
+      const newRows = rows.filter(r => {
+        const t = r.updated_at || r.date_str || '2000-01-01';
+        return t > lastSeen;
+      });
+      if(newRows.length > 0){
+        showSignedBanner(newRows);
+      }
+      // Always update lastSeen so we don't show old ones again
       localStorage.setItem(lastKey, new Date().toISOString());
-    } else {
-      // Still update lastSeen even if nothing new
-      if(lastSeen==='2000-01-01') localStorage.setItem(lastKey, new Date().toISOString());
+    } else if(lastSeen==='2000-01-01'){
+      localStorage.setItem(lastKey, new Date().toISOString());
     }
   }catch(e){console.log('notif check err',e);}
 }
@@ -1060,7 +1089,7 @@ function showSignedBanner(rows){
   const names = rows.map(r=>r.client_name).join('، ');
   const count = rows.length;
   const msg = count===1
-    ? `✅ ${rows[0].client_name} חתם על ההסכם עבור ${rows[0].addr}`
+    ? `✅ ${rows[0].client_name||rows[0].clientName||''} חתם על ההסכם`
     : `✅ ${count} הסכמים חדשים נחתמו: ${names}`;
 
   const banner = document.createElement('div');
@@ -1087,13 +1116,13 @@ function startBgPolling(agentName){
       const lastKey = 'k_lastseen_'+agentName;
       const lastSeen = localStorage.getItem(lastKey) || '2000-01-01';
       const res = await fetch(
-        `${SUPA_URL}/rest/v1/agreements?agent=eq.${encodeURIComponent(agentName)}&signature=neq.&pending_sign=eq.false&created_at=gt.${lastSeen}&select=id,client_name,addr`,
+        `${SUPA_URL}/rest/v1/agreements?agent=eq.${encodeURIComponent(agentName)}&signature=neq.&pending_sign=eq.false&select=id,client_name,addr,updated_at`,
         {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}}
       );
       const rows = await res.json();
-      if(rows && !rows.error && rows.length > 0){
-        showSignedBanner(rows);
-        localStorage.setItem(lastKey, new Date().toISOString());
+      if(rows && !rows.error){
+        const newRows=rows.filter(r=>(r.updated_at||'2000-01-01')>lastSeen);
+        if(newRows.length>0){showSignedBanner(newRows);localStorage.setItem(lastKey,new Date().toISOString());}
       }
     }catch(e){}
   }, 60000); // every 60 seconds
@@ -1115,8 +1144,11 @@ function loginMgr(){
 
 /* ══ NAVIGATION ══ */
 function showScreen(id){
+  if(!id) id='screen-dash';
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  const el=document.getElementById(id);
+  if(!el){ console.log('showScreen: element not found:',id); document.getElementById('screen-dash').classList.add('active'); window.scrollTo(0,0); return; }
+  el.classList.add('active');
   window.scrollTo(0,0);
 }
 
@@ -1458,7 +1490,7 @@ async function showMyAgreements(){
     } else if(rows&&rows.error){
       console.error('Supabase error:',rows);
     }
-  }catch(e){console.log('sync err',e);}
+  }catch(e){console.log('sync err',e); /* fall through to render local data */ }
 
   // Also show locally saved agreements (fallback if Supabase is slow)
   const myAgs=agreements.filter(a=>a.agent===agent.name).slice().reverse();
@@ -1495,6 +1527,7 @@ async function showMyAgreements(){
         <button class="btn-send-link" style="flex:1;min-width:80px" onclick="openAgreementView('${String(a.id)}','my')">📄 צפה / חתום</button>
         <button class="btn-send-link" style="flex:1;min-width:80px;background:#25D366;color:#fff;border-color:#25D366" onclick="sendRemoteLink('${String(a.id)}')">✍🏻 שלח לחתימה</button>
         <button class="btn-send-link" style="flex:1;min-width:80px;background:#075E54;color:#fff;border-color:#075E54" onclick="shareAgreementWA('${String(a.id)}')">📤 שתף PDF</button>
+        ${a.type==='collab'?'<button class="btn-send-link" style="flex:1;min-width:80px;background:#0E0E0E;color:var(--gold-light);border-color:#333" onclick="dlCollabPDF(agreements.find(x=>String(x.id)===\''+String(a.id)+'\'))">⬇️ הורד PDF</button>':''}
       </div>
     </div>`;
   }).join('');
@@ -1733,7 +1766,13 @@ function openAgreementView(id, returnTo){
   // Contract text — editable textarea with correct fee values substituted
   const d={name:a.clientName,id:a.clientId,phone:a.clientPhone,addr:a.addr,
            saleFee:a.saleFee,rentFee:a.rentFee,vatSale:a.vatSale,vatRent:a.vatRent,notes:a.notes||'',exclFrom:a.exclFrom||'',exclTo:a.exclTo||'',propPrice:a.propPrice||''};
-  const rawText = a.customText || contractText(a.type, a.lang||'he', d);
+  let rawText;
+  if(a.type==='collab'){
+    rawText = a.customText || buildCollabPDFHtml ? (a.customText||'הסכם שיתוף פעולה') : 'הסכם שיתוף פעולה';
+    rawText = a.customText || collabContractText({ourAgent:a.collabOurAgent||a.agent||'',ourPhone:a.collabOurPhone||'',agent2:a.collabAgent2||'',phone2:a.collabPhone2||'',addr:a.addr,price:a.collabPrice||'',saleFee:a.saleFee,rentFee:a.rentFee,notes:a.notes||'',extraAgents:a.collabExtraAgents||[]});
+  } else {
+    rawText = a.customText || contractText(a.type, a.lang||'he', d);
+  }
 
   const ct = document.getElementById('view-ag-contract');
   ct.innerHTML = `
@@ -1795,11 +1834,20 @@ async function saveViewSignature(){
     });
   } catch(e){}
   // Refresh view
-  document.getElementById('view-existing-sig').style.display='block';
-  document.getElementById('view-new-sig-area').style.display='none';
-  document.getElementById('view-sig-img').src=sig;
-  document.getElementById('view-sig-label').textContent='חתימה קיימת ✅';
-  alert('✅ החתימה נשמרה בהצלחה!');
+  const vExist=document.getElementById('view-existing-sig');
+  const vNew=document.getElementById('view-new-sig-area');
+  const vImg=document.getElementById('view-sig-img');
+  const vLbl=document.getElementById('view-sig-label');
+  if(vExist) vExist.style.display='block';
+  if(vNew) vNew.style.display='none';
+  if(vImg) vImg.src=sig;
+  if(vLbl) vLbl.textContent='חתימה קיימת ✅';
+  // Show non-blocking toast
+  const t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#2E7D32;color:#fff;padding:12px 20px;border-radius:10px;font-family:Heebo,sans-serif;font-size:13px;font-weight:600;z-index:9999;direction:rtl';
+  t.textContent='✅ החתימה נשמרה בהצלחה!';
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),3000);
 }
 
 
@@ -1899,20 +1947,17 @@ function sendRemoteLink(agreementId){
   if(!a){alert('הסכם לא נמצא');return;}
   const link=makeSignLink(a);
   const ph=phoneToWA(a.clientPhone);
+  const isCollab=(a.type==='collab');
   const isEnR=(a.lang==='en');
-  const msg=encodeURIComponent(isEnR
-    ? `Hello ${a.clientName},\n\nAgent ${a.agentEn||a.agent} from Kings Jerusalem has sent you a brokerage agreement for signing.\n\n✍🏻 Sign here:\n${link}`
-    : `שלום ${a.clientName},\n\nהסוכן ${a.agent} מ-Kings Jerusalem שלח לך הסכם תיווך לחתימה.\n\n✍🏻 לחתימה:\n${link}`);
-  window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');
-  // After WhatsApp opens, show options
-  setTimeout(()=>{
-    // Flash a brief toast notification instead of navigating away from my-agreements
-    const toast=document.createElement('div');
-    toast.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0E0E0E;color:#B8963E;padding:12px 20px;border-radius:10px;font-family:Heebo,sans-serif;font-size:13px;font-weight:600;z-index:999;border:1px solid #B8963E;white-space:nowrap';
-    toast.textContent='✅ נשלח ל-'+a.clientName;
-    document.body.appendChild(toast);
-    setTimeout(()=>toast.remove(),3000);
-  },800);
+  let msg;
+  if(isCollab){
+    msg=encodeURIComponent('שלום,\n\nנשלח אליך הסכם שיתוף פעולה ע"י הסוכן '+a.agent+' מ-Kings Jerusalem.\n\n✍🏻 לחתימה:\n'+link);
+  } else if(isEnR){
+    msg=encodeURIComponent('Hello '+a.clientName+',\n\nAgent '+(a.agentEn||a.agent)+' from Kings Jerusalem has sent you a brokerage agreement for signing.\n\n✍🏻 Sign here:\n'+link);
+  } else {
+    msg=encodeURIComponent('שלום '+a.clientName+',\n\nהסוכן '+a.agent+' מ-Kings Jerusalem שלח לך הסכם תיווך לחתימה.\n\n✍🏻 לחתימה:\n'+link);
+  }
+  window.open('https://wa.me/'+ph+'?text='+msg,'_blank');
 }
 
 async function checkRemoteSign(){
@@ -2110,9 +2155,14 @@ async function submitRemote(){
       </div>
       <div style="font-family:'Playfair Display',serif;font-size:20px;margin-bottom:8px">ההסכם נחתם!</div>
       <div style="font-size:13px;color:#666;line-height:1.6;margin-bottom:24px">תודה ${name}.<br>ההסכם נשמר ויועבר לסוכן ${data.agent}.</div>
-      <button onclick="dlClientPDF()" style="background:#0E0E0E;border:none;border-radius:12px;padding:14px 24px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;color:#B8963E;cursor:pointer;display:flex;align-items:center;gap:8px;margin:0 auto 12px">
-        ⬇️ לחץ כאן להורדת ההסכם
-      </button>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;max-width:280px;margin-left:auto;margin-right:auto">
+        <button onclick="dlClientPDF()" style="background:#0E0E0E;border:none;border-radius:12px;padding:14px 24px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;color:#B8963E;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;width:100%">
+          ⬇️ הורד את ההסכם
+        </button>
+        <button onclick="showScreen(window._lastAgent?'screen-dash':'screen-login')" style="background:none;border:1px solid #B8963E;border-radius:12px;padding:12px;font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;color:#B8963E;cursor:pointer;width:100%">
+          ← חזור לתפריט הראשי
+        </button>
+      </div>
       <div style="margin-top:16px;font-size:11px;color:#AAA">Kings Jerusalem Luxury Real Estate</div>
     </div>`;
 }
@@ -2121,8 +2171,10 @@ async function submitRemote(){
 function dlClientPDF(){
   const a=window._clientSignedAg;
   if(!a){alert('לא נמצא הסכם');return;}
-  const html = (a.excl&&a.exclContractText) ? buildCombinedPDFHtml(a) : buildPDFHtml(a);
-  // Open in new tab so client can save/print from there
+  let html;
+  if(a.type==='collab') html=buildCollabPDFHtml(a);
+  else if(a.excl&&a.exclContractText) html=buildCombinedPDFHtml(a);
+  else html=buildPDFHtml(a);
   const blob = new Blob([html], {type:'text/html;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   window.open(url,'_blank');
@@ -2216,18 +2268,21 @@ async function submitAgreement(requireSig=true){
   if(waBtnEl){waBtnEl.style.opacity='0.4';waBtnEl.style.pointerEvents='none';}
 
   // Wait for Supabase sync to complete before enabling WhatsApp button
-  await syncToSupabase(a);
+  try { await syncToSupabase(a); } catch(e){ console.log('sync err',e); }
 
-  const signLink=makeSignLink(a);
-  const ph=phoneToWA(d.phone);
-  const isEnMsg=(a.lang==='en');
-  const msgHe=`שלום ${d.name},\n\nהסוכן ${agent.name} מ-Kings Jerusalem שלח לך הסכם תיווך לחתימה דיגיטלית.\n\n✍🏻 לחתימה:\n${signLink}`;
-  const msgEn=`Hello ${d.name},\n\nAgent ${a.agentEn||agent.name} from Kings Jerusalem has sent you a brokerage agreement for digital signing.\n\n✍🏻 Sign here:\n${signLink}`;
-  const msg=encodeURIComponent(isEnMsg?msgEn:msgHe);
-  const waBtn2=document.getElementById('wa-btn');
-  if(waBtn2){waBtn2.href=`https://wa.me/${ph}?text=${msg}`;waBtn2.style.opacity='1';waBtn2.style.pointerEvents='auto';}
-  const okSub2=document.getElementById('ok-sub');
-  if(okSub2) okSub2.innerHTML=`ההסכם עבור <strong>${d.name}</strong> נשמר ✅<br>נכס: ${d.addr}${!sig?'<br><span style="color:#E65100;font-size:11px">⏳ ממתין לחתימה</span>':''}`;
+  try {
+    const signLink=makeSignLink(a);
+    const ph=phoneToWA(d.phone);
+    const isEnMsg=(a.lang==='en');
+    const msgHe='שלום '+d.name+',\n\nהסוכן '+agent.name+' מ-Kings Jerusalem שלח לך הסכם תיווך לחתימה דיגיטלית.\n\n✍🏻 לחתימה:\n'+signLink;
+    const msgEn='Hello '+d.name+',\n\nAgent '+(a.agentEn||agent.name)+' from Kings Jerusalem has sent you a brokerage agreement for digital signing.\n\n✍🏻 Sign here:\n'+signLink;
+    const msg=encodeURIComponent(isEnMsg?msgEn:msgHe);
+    const waBtn2=document.getElementById('wa-btn');
+    if(waBtn2){waBtn2.href='https://wa.me/'+ph+'?text='+msg;waBtn2.style.opacity='1';waBtn2.style.pointerEvents='auto';}
+    const okSub2=document.getElementById('ok-sub');
+    if(okSub2) okSub2.innerHTML='ההסכם עבור <strong>'+d.name+'</strong> נשמר ✅<br>נכס: '+d.addr+(!sig?'<br><span style="color:#E65100;font-size:11px">⏳ ממתין לחתימה</span>':'');
+    window._clientSignedAg=a;
+  } catch(e){ console.log('submitAgreement end err',e); }
 }
 
 /* ══ QUESTIONNAIRE ══ */
@@ -2352,6 +2407,7 @@ function buildPDFHtml(a){
 }
 
 function quickSendWA(){
+  try {
   // Save agreement without signature, then open WhatsApp directly
   const d=getFormData();
   if(!d.name||!d.phone||!d.addr){alert('נא למלא שם, טלפון וכתובת');return;}
@@ -2388,18 +2444,24 @@ function quickSendWA(){
   // Show simple options after
   setTimeout(()=>showAfterWA(a), 800);
   showScreen('screen-success');
+  } catch(e){ console.log('quickSendWA err',e); showScreen('screen-sign'); }
 }
-
 function sendWA(){
   const a=agreements[agreements.length-1];
   if(!a) return;
   const signLink=makeSignLink(a);
   const ph=phoneToWA(a.clientPhone);
+  const isCollab=(a.type==='collab');
   const isEnWA=(a.lang==='en');
-  const msg=encodeURIComponent(isEnWA
-    ? `Hello ${a.clientName},\n\nAgent ${a.agentEn||a.agent} from Kings Jerusalem has sent you a brokerage agreement for signing.\n\n✍🏻 Sign here:\n${signLink}`
-    : `שלום ${a.clientName},\n\nהסוכן ${a.agent} מ-Kings Jerusalem שלח לך הסכם תיווך לחתימה.\n\n✍🏻 לחתימה:\n${signLink}`);
-  window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');
+  let msg;
+  if(isCollab){
+    msg=encodeURIComponent('שלום,\n\nנשלח אליך הסכם שיתוף פעולה ע"י הסוכן '+a.agent+' מ-Kings Jerusalem.\n\n✍🏻 לחתימה:\n'+signLink);
+  } else if(isEnWA){
+    msg=encodeURIComponent('Hello '+a.clientName+',\n\nAgent '+(a.agentEn||a.agent)+' from Kings Jerusalem has sent you a brokerage agreement for signing.\n\n✍🏻 Sign here:\n'+signLink);
+  } else {
+    msg=encodeURIComponent('שלום '+a.clientName+',\n\nהסוכן '+a.agent+' מ-Kings Jerusalem שלח לך הסכם תיווך לחתימה.\n\n✍🏻 לחתימה:\n'+signLink);
+  }
+  window.open('https://wa.me/'+ph+'?text='+msg,'_blank');
   setTimeout(()=>showAfterWA(a), 800);
 }
 
@@ -2407,11 +2469,17 @@ function sendWA(){
 function shareAgreementWA(id){
   const a=agreements.find(x=>String(x.id)===String(id));
   if(!a) return;
+  const isCollab=(a.type==='collab');
   const isEn=(a.lang==='en');
-  const msg=encodeURIComponent(isEn
-    ? `Please find attached the brokerage agreement for ${a.addr}.\nDate: ${a.dateStr}\nAgent: ${a.agentEn||a.agent} — Kings Jerusalem`
-    : `מצורף הסכם התיווך עבור ${a.addr}.\nתאריך: ${a.dateStr}\nסוכן: ${a.agent} — Kings Jerusalem`);
-  window.open(`https://wa.me/?text=${msg}`,'_blank');
+  let msg;
+  if(isCollab){
+    msg=encodeURIComponent('הסכם שיתוף פעולה — Kings Jerusalem\nסוכן: '+a.agent+'\nתאריך: '+a.dateStr);
+  } else if(isEn){
+    msg=encodeURIComponent('Please find attached the brokerage agreement for '+a.addr+'.\nDate: '+a.dateStr+'\nAgent: '+(a.agentEn||a.agent)+' — Kings Jerusalem');
+  } else {
+    msg=encodeURIComponent('מצורף הסכם התיווך עבור '+a.addr+'.\nתאריך: '+a.dateStr+'\nסוכן: '+a.agent+' — Kings Jerusalem');
+  }
+  window.open('https://wa.me/?text='+msg,'_blank');
 }
 
 // Share last agreement PDF
@@ -2434,6 +2502,9 @@ function showAfterWA(a){
       <div style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:280px">
         <button onclick="shareAgreementWA('${String(a.id)}')" style="background:#075E54;border:none;border-radius:12px;padding:13px;font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;color:#fff;cursor:pointer">
           📤 שתף PDF בוואטסאפ
+        </button>
+        <button onclick="showMyAgreements()" style="background:none;border:1px solid var(--border);border-radius:12px;padding:12px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--gray);cursor:pointer">
+          📂 ההסכמים שלי
         </button>
         <button onclick="showScreen('screen-dash')" style="background:none;border:1px solid var(--border);border-radius:12px;padding:12px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--gray);cursor:pointer">
           ← חזור לתפריט הראשי
@@ -2555,6 +2626,7 @@ async function loadAgentsFromSupa(){
           AGENTS[idx].id=r.agent_id||'';
           AGENTS[idx].license=r.license||'';
           AGENTS[idx].phone=r.phone||AGENTS[idx].phone||'';
+          AGENTS[idx].nameEn=r.name_en||AGENTS[idx].nameEn||'';
         } else {
           AGENTS.push({name:r.name,nameEn:r.name_en||'',id:r.agent_id||'',license:r.license||'',phone:r.phone||''});
         }
@@ -2687,11 +2759,11 @@ let _editType='', _editId='';
 function openAddModal(type){
   _editType=type; _editId='';
   if(type==='client') showEditModal('client','','','','');
-  else if(type==='agent') showEditModal('agent','','','');
+  else if(type==='agent') showEditModal('agent','','','','',''); // f1=name,f2=nameEn,f3=phone,f4=id,f5=license
   else if(type==='property'){_editPropAddr='__new__';openEditProp('__new__');}
 }
 
-function showEditModal(type, f1, f2, f3, f4){
+function showEditModal(type, f1, f2, f3, f4, f5){
   const existing=document.getElementById('mgr-edit-modal');
   if(existing) existing.remove();
   let fields='', title='';
@@ -2702,10 +2774,11 @@ function showEditModal(type, f1, f2, f3, f4){
       <div class="fg"><label class="fl">טלפון</label><input class="fi" id="em-f3" value="${f3}" type="tel"></div>`;
   } else if(type==='agent'){
     title=_editId?'✏️ עריכת סוכן':'+ סוכן חדש';
-    fields=`<div class="fg"><label class="fl">שם בעברית *</label><input class="fi" id="em-f1" value="${f1}"></div>
-      <div class="fg"><label class="fl">שם באנגלית</label><input class="fi" id="em-f2" value="${f2}"></div>
-      <div class="fg"><label class="fl">תעודת זהות</label><input class="fi" id="em-f3" value="${f3}" inputmode="numeric" maxlength="9"></div>
-      <div class="fg"><label class="fl">מספר רישיון</label><input class="fi" id="em-f4" value="${f4||''}"></div>`;
+    fields=`<div class="fg"><label class="fl">שם בעברית *</label><input class="fi" id="em-f1" value="${f1}" placeholder="שם מלא בעברית"></div>
+      <div class="fg"><label class="fl">שם באנגלית</label><input class="fi" id="em-f2" value="${f2}" placeholder="Full name in English"></div>
+      <div class="fg"><label class="fl">טלפון</label><input class="fi" id="em-f3b" value="${f3}" type="tel" dir="ltr" placeholder="05X-XXXXXXX"></div>
+      <div class="fg"><label class="fl">תעודת זהות</label><input class="fi" id="em-f3" value="${f4||''}" inputmode="numeric" maxlength="9" placeholder="000000000"></div>
+      <div class="fg"><label class="fl">מספר רישיון</label><input class="fi" id="em-f4" value="${f5||''}" placeholder="מספר רישיון תיווך"></div>`;
   }
   const modal=document.createElement('div');
   modal.id='mgr-edit-modal';
@@ -2735,36 +2808,70 @@ async function saveMgrEdit(){
     }
     save(); syncClientsToSupa(); document.getElementById('mgr-edit-modal').remove(); renderClients();
   } else if(_editType==='agent'){
-    const f3=(document.getElementById('em-f3')?.value||'').trim();
-    const f4=(document.getElementById('em-f4')?.value||'').trim();
+    // f1=nameHe, f2=nameEn, f3b=phone, f3=id, f4=license
+    const phone=(document.getElementById('em-f3b')?.value||'').trim();
+    const agId=(document.getElementById('em-f3')?.value||'').trim();
+    const license=(document.getElementById('em-f4')?.value||'').trim();
     if(_editId){
+      // EDIT existing agent
       const idx=AGENTS.findIndex(a=>a.name===_editId);
       if(idx>=0){
         const oldName=_editId;
-        AGENTS[idx].name=f1;AGENTS[idx].nameEn=f2;AGENTS[idx].id=f3;AGENTS[idx].license=f4;
+        const newName=f1;
+        // Update agent record
+        AGENTS[idx].name=newName;
+        AGENTS[idx].nameEn=f2;
+        AGENTS[idx].phone=phone;
+        AGENTS[idx].id=agId;
+        AGENTS[idx].license=license;
+        // If name changed — update all agreements that reference this agent
+        if(oldName !== newName){
+          agreements.forEach(a=>{ if(a.agent===oldName){ a.agent=newName; if(a.agentEn===oldName) a.agentEn=f2||newName; } });
+        }
         save();
-        // PATCH the existing record in Supabase
+        // PATCH Supabase agents table
         try{
           await fetch(`${SUPA_URL}/rest/v1/agents?name=eq.${encodeURIComponent(oldName)}`,{
             method:'PATCH',
             headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-            body:JSON.stringify({name:f1,name_en:f2,agent_id:f3,license:f4})
+            body:JSON.stringify({name:newName,name_en:f2,agent_id:agId,license:license,phone:phone})
           });
         }catch(e){console.log('agent patch err',e);}
+        // If name changed — also patch all agreements in Supabase
+        if(oldName !== newName){
+          try{
+            await fetch(`${SUPA_URL}/rest/v1/agreements?agent=eq.${encodeURIComponent(oldName)}`,{
+              method:'PATCH',
+              headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+              body:JSON.stringify({agent:newName})
+            });
+          }catch(e){console.log('agreements agent rename err',e);}
+        }
       }
     } else {
-      AGENTS.push({name:f1,nameEn:f2,phone:'',id:f3,license:f4});
+      // ADD new agent
+      AGENTS.push({name:f1,nameEn:f2,phone:phone,id:agId,license:license});
       save();
       try{
         await fetch(`${SUPA_URL}/rest/v1/agents`,{
           method:'POST',
           headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
-          body:JSON.stringify({name:f1,name_en:f2,agent_id:f3,license:f4,phone:''})
+          body:JSON.stringify({name:f1,name_en:f2,agent_id:agId,license:license,phone:phone})
         });
       }catch(e){console.log('agent insert err',e);}
     }
-    document.getElementById('mgr-edit-modal').remove(); renderAgents();
-    buildAgentGrid();
+    document.getElementById('mgr-edit-modal').remove();
+    buildAgentGrid();   // Update login screen immediately
+    renderAgents();     // Update manager list
+    refreshMgrStats();  // Update stats
+    // Refresh the agent filter dropdown in manager agreements tab
+    const fa=document.getElementById('fil-agent');
+    if(fa){
+      const curVal=fa.value;
+      fa.innerHTML='<option value="">כל הסוכנים</option>';
+      AGENTS.forEach(a=>{const o=document.createElement('option');o.value=a.name;o.textContent=a.name;fa.appendChild(o);});
+      fa.value=curVal;
+    }
   }
 }
 
@@ -2801,12 +2908,17 @@ function editClient(id){
   showEditModal('client',c.name,c.id||'',c.phone,'');
 }
 async function deleteAgent(name){
-  if(!confirm(`למחוק את הסוכן ${name}? פעולה זו אינה ניתנת לביטול.`)) return;
+  const agAgreements = agreements.filter(a=>a.agent===name).length;
+  const msg = agAgreements > 0
+    ? `למחוק את הסוכן ${name}?\nשים לב: לסוכן זה ${agAgreements} הסכמים במערכת (ההסכמים לא יימחקו, רק הסוכן).\nפעולה זו אינה ניתנת לביטול.`
+    : `למחוק את הסוכן ${name}? פעולה זו אינה ניתנת לביטול.`;
+  if(!confirm(msg)) return;
   const idx = AGENTS.findIndex(a=>a.name===name);
   if(idx>=0) AGENTS.splice(idx,1);
   save();
   buildAgentGrid();
   renderAgents();
+  refreshMgrStats();
   // Delete from Supabase
   try {
     await fetch(`${SUPA_URL}/rest/v1/agents?name=eq.${encodeURIComponent(name)}`,{
@@ -2819,7 +2931,8 @@ async function deleteAgent(name){
 function editAgent(name){
   _editType='agent'; _editId=name;
   const a=AGENTS.find(x=>x.name===name);if(!a)return;
-  showEditModal('agent',a.name,a.nameEn||'',a.id||'',a.license||'');
+  // f1=name, f2=nameEn, f3=phone, f4=id, f5=license
+  showEditModal('agent',a.name,a.nameEn||'',a.phone||'',a.id||'',a.license||'');
 }
 
 /* ══ MANAGER RENDER FUNCTIONS ══ */
@@ -2912,9 +3025,10 @@ function renderAgents(){
       <div class="lrow">
         <div style="flex:1">
           <h4>👤 ${ag.name} <span style="color:var(--gray);font-size:11px;font-weight:400">${ag.nameEn||''}</span></h4>
-          ${ag.id?`<p style="font-size:10px">🪪 ${ag.id}</p>`:''}
-          ${ag.license?`<p style="font-size:10px">📋 רישיון: ${ag.license}</p>`:''}
-          <p>${ags.length} הסכמים · ${new Set(ags.map(a=>a.clientId)).size} לקוחות</p>
+          ${ag.phone?`<p style="font-size:11px">📞 ${ag.phone}</p>`:''}
+          ${ag.id?`<p style="font-size:10px;color:var(--gray)">🪪 ${ag.id}</p>`:''}
+          ${ag.license?`<p style="font-size:10px;color:var(--gray)">📋 רישיון: ${ag.license}</p>`:''}
+          <p style="font-size:11px">${ags.length} הסכמים · ${new Set(ags.map(a=>a.clientId)).size} לקוחות</p>
           <div class="pbar-wrap"><div class="pbar"><div class="pbar-fill" style="width:${pct}%"></div></div></div>
         </div>
         <div class="lmeta" style="display:flex;flex-direction:column;gap:4px">
@@ -3060,14 +3174,51 @@ function showAgentDetail(name){
 /* ══ COLLAB (BROKER COOPERATION) ══ */
 let _collabOrigText = '';
 let collabSigDrawn = false;
+let _collabExtraAgents = []; // [{name, phone}]
 
 function startCollabForm(){
-  ['cb-agent1','cb-phone1','cb-agent2','cb-phone2','cb-addr','cb-price','cb-client','cb-cphone','cb-notes'].forEach(id=>{
+  _collabExtraAgents = [];
+  ['cb-agent2','cb-phone2','cb-addr','cb-price','cb-notes'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
   const sf=document.getElementById('cb-sale-fee'); if(sf) sf.value='1';
   const rf=document.getElementById('cb-rent-fee'); if(rf) rf.value='0.5';
+  // Clear extra agents container
+  const cont=document.getElementById('cb-extra-agents-container');
+  if(cont) cont.innerHTML='';
+  // Fill our agent display
+  const disp=document.getElementById('cb-our-agent-display');
+  const ph=document.getElementById('cb-our-agent-phone-display');
+  if(agent){
+    if(disp) disp.textContent=agent.name;
+    if(ph) ph.textContent=agent.phone?'📞 '+agent.phone:'';
+  } else {
+    if(disp) disp.textContent='—';
+    if(ph) ph.textContent='';
+  }
   showScreen('screen-collab');
+}
+
+function addCollabAgent(){
+  _collabExtraAgents.push({name:'',phone:''});
+  renderExtraAgents();
+}
+function removeCollabAgent(i){
+  _collabExtraAgents.splice(i,1);
+  renderExtraAgents();
+}
+function renderExtraAgents(){
+  const cont=document.getElementById('cb-extra-agents-container');
+  if(!cont) return;
+  cont.innerHTML=_collabExtraAgents.map((a,i)=>`
+    <div class="fcard" style="border-color:rgba(106,27,154,0.25)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="fcard-title" style="margin-bottom:0;border-bottom:none;padding-bottom:0;color:#6A1B9A">סוכן חיצוני נוסף ${i+2}</div>
+        <button onclick="removeCollabAgent(${i})" style="font-size:10px;background:#FFF5F5;border:1px solid #FFCDD2;border-radius:6px;padding:4px 8px;color:#C62828;cursor:pointer;font-family:'Heebo',sans-serif">✕ הסר</button>
+      </div>
+      <div class="fgroup"><label class="flabel">שם הסוכן</label><input class="finput" oninput="_collabExtraAgents[${i}].name=this.value" value="${a.name}" type="text" placeholder="שם מלא"></div>
+      <div class="fgroup"><label class="flabel">טלפון</label><input class="finput" oninput="_collabExtraAgents[${i}].phone=this.value" value="${a.phone}" type="tel" dir="ltr" placeholder="05X-XXXXXXX"></div>
+    </div>`).join('');
 }
 
 function acAddrCollab(val){
@@ -3088,33 +3239,43 @@ function pickCollabAddr(addr){
 }
 
 function collabContractText(d){
+  const ourAgent=d.ourAgent||'';
+  const ourPhone=d.ourPhone||'';
   const saleFee=d.saleFee?d.saleFee+'% + מע"מ מכל צד':'1% + מע"מ מכל צד';
   const rentFee=d.rentFee?d.rentFee+' חודש + מע"מ מכל צד':'חצי חודש + מע"מ מכל צד';
-  const clientLine=d.clientName?'\nלקוח: '+d.clientName+(d.clientPhone?' | טלפון: '+d.clientPhone:''):'';
   const propLine='נכס: '+d.addr+(d.price?' | מחיר: ₪'+d.price:'');
   const nb=d.notes?'\n\nהערות: '+d.notes:'';
-  return 'הסכם שיתוף פעולה בין מתווכים\n\n'+propLine+clientLine+'\n\nהצדדים:\nסוכן מציג: '+d.agent1+(d.phone1?' | '+d.phone1:'')+'\nסוכן מביא:  '+d.agent2+(d.phone2?' | '+d.phone2:'')+'\n\nהוסכם בין הצדדים כדלקמן:\n\n1. הצדדים יפעלו מתוך נאמנות, הגינות ושקיפות לשיתוף פעולה.\n\n2. הצדדים לא ימסרו את פרטי הנכס / הקונה למתווך אחר, אלא אם יקבלו אישור ובכתב.\n\n3. כל קשר עם הקונה / בעל נכס יהיה באמצעות הנציג המייצג (אלא אם סוכם בכתב אחרת).\n\n4. הסכם זה תקף לגבי כל עסקה אשר תיווצר מהנכס הנ"ל גם עם מעורבות מתווך/נציג נוסף (צד ג\').\n\n5. הסכם זה תקף על הנכסים הנ"ל בלבד.\n\n6. לכל הסכומים המצויינים לעיל יתווסף מע"מ כחוק.\n\nדמי תיווך:\n   מכירה: '+saleFee+'\n   שכירות: '+rentFee+nb;
+  // Build list of all external agents
+  let extAgents=[{name:d.agent2,phone:d.phone2},...(d.extraAgents||[])];
+  const extLines=extAgents.map((a,i)=>'סוכן חיצוני '+(i===0?'':'נוסף ')+(extAgents.length>1?(i+1)+': ':'')+a.name+(a.phone?' | '+a.phone:'')).join('\n');
+  return 'הסכם שיתוף פעולה בין מתווכים\n\n'+propLine+'\n\nהצדדים:\nסוכן מגיש (Kings Jerusalem): '+ourAgent+(ourPhone?' | '+ourPhone:'')+'\n'+extLines+'\n\nהוסכם בין הצדדים כדלקמן:\n\n1. הצדדים יפעלו מתוך נאמנות, הגינות ושקיפות לשיתוף פעולה.\n\n2. הצדדים לא ימסרו את פרטי הנכס / הקונה למתווך אחר, אלא אם יקבלו אישור ובכתב.\n\n3. כל קשר עם הקונה / בעל נכס יהיה באמצעות הנציג המייצג (אלא אם סוכם בכתב אחרת).\n\n4. הסכם זה תקף לגבי כל עסקה אשר תיווצר מהנכס הנ"ל גם עם מעורבות מתווך/נציג נוסף (צד ג\').\n\n5. הסכם זה תקף על הנכסים הנ"ל בלבד.\n\n6. לכל הסכומים המצויינים לעיל יתווסף מע"מ כחוק.\n\nדמי תיווך:\n   מכירה: '+saleFee+'\n   שכירות: '+rentFee+nb;
 }
 
 function toCollabSign(){
   const d={
-    agent1:(document.getElementById('cb-agent1')?.value||'').trim(),
-    phone1:(document.getElementById('cb-phone1')?.value||'').trim(),
+    ourAgent:agent?agent.name:'',
+    ourPhone:agent?agent.phone||'':'',
     agent2:(document.getElementById('cb-agent2')?.value||'').trim(),
     phone2:(document.getElementById('cb-phone2')?.value||'').trim(),
     addr:(document.getElementById('cb-addr')?.value||'').trim(),
     price:(document.getElementById('cb-price')?.value||'').trim(),
     saleFee:(document.getElementById('cb-sale-fee')?.value||'').trim(),
     rentFee:(document.getElementById('cb-rent-fee')?.value||'').trim(),
-    clientName:(document.getElementById('cb-client')?.value||'').trim(),
-    clientPhone:(document.getElementById('cb-cphone')?.value||'').trim(),
     notes:(document.getElementById('cb-notes')?.value||'').trim(),
+    extraAgents:[..._collabExtraAgents],
   };
-  if(!d.agent1||!d.agent2||!d.addr){alert('נא למלא שמות שני הסוכנים וכתובת נכס');return;}
+  if(!d.agent2||!d.addr){alert('נא למלא שם סוכן חיצוני וכתובת נכס');return;}
+  if(!d.phone2){alert('נא למלא טלפון של הסוכן החיצוני לשליחת ההסכם');return;}
   const raw=collabContractText(d);
   _collabOrigText=raw;
   const ta=document.getElementById('collab-contract-ta');
-  if(ta){ta.value=raw;}
+  if(ta) ta.value=raw;
+  // Build summary
+  const extNames=[d.agent2,...d.extraAgents.map(a=>a.name)].filter(Boolean);
+  const sumEl=document.getElementById('collab-sign-summary');
+  if(sumEl) sumEl.innerHTML='<strong>מגיש:</strong> '+(d.ourAgent||'—')+'<br><strong>חותמים:</strong> '+extNames.join(', ')+'<br><strong>נכס:</strong> '+d.addr;
+  const lblEl=document.getElementById('collab-sig-label');
+  if(lblEl) lblEl.textContent='חתימת '+(d.agent2)+(d.extraAgents.length?' ואחרים':'')+' — חתמו כאן באצבע';
   collabSigDrawn=false;
   showScreen('screen-collab-sign');
   setTimeout(()=>{
@@ -3143,57 +3304,159 @@ function resetCollabText(){
 
 async function submitCollab(reqSig){
   if(reqSig&&!collabSigDrawn){alert('נא לחתום לפני האישור');return;}
-  const sig=collabSigDrawn?document.getElementById('collab-sig-c').toDataURL('image/png'):'';
+  const sig=collabSigDrawn?(()=>{try{return document.getElementById('collab-sig-c').toDataURL('image/png');}catch(e){return '';}})():'';
   const d={
-    agent1:(document.getElementById('cb-agent1')?.value||'').trim(),
-    phone1:(document.getElementById('cb-phone1')?.value||'').trim(),
+    ourAgent:agent?agent.name:'',
+    ourPhone:agent?agent.phone||'':'',
     agent2:(document.getElementById('cb-agent2')?.value||'').trim(),
     phone2:(document.getElementById('cb-phone2')?.value||'').trim(),
     addr:(document.getElementById('cb-addr')?.value||'').trim(),
     price:(document.getElementById('cb-price')?.value||'').trim(),
     saleFee:(document.getElementById('cb-sale-fee')?.value||'').trim(),
     rentFee:(document.getElementById('cb-rent-fee')?.value||'').trim(),
-    clientName:(document.getElementById('cb-client')?.value||'').trim(),
-    clientPhone:(document.getElementById('cb-cphone')?.value||'').trim(),
     notes:(document.getElementById('cb-notes')?.value||'').trim(),
+    extraAgents:[..._collabExtraAgents],
   };
   const editedText=document.getElementById('collab-contract-ta')?.value||collabContractText(d);
   const now=new Date();
+  const extNames=[d.agent2,...d.extraAgents.map(a=>a.name)].filter(Boolean).join(' + ');
   const a={
     id:Date.now(),type:'collab',typeName:'הסכם שיתוף פעולה',
-    agent:agent.name,agentEn:agent.nameEn||agent.name,
-    agentPhone:agent.phone||'',agentLicense:agent.license||'',
-    clientName:d.clientName||(d.agent1+' + '+d.agent2),clientId:'',
-    clientPhone:d.clientPhone||d.phone1||'',
+    agent:d.ourAgent,agentEn:'',agentPhone:d.ourPhone,agentLicense:agent?agent.license||'':'',
+    clientName:extNames,clientId:'',
+    clientPhone:d.phone2,
     addr:d.addr,saleFee:d.saleFee,rentFee:d.rentFee,
     vatSale:false,vatRent:false,notes:d.notes,
     lang:'he',excl:false,exclFrom:'',exclTo:'',
     sig,date:now.toISOString(),dateStr:now.toLocaleDateString('he-IL'),
     pendingSign:!sig,customText:editedText,
-    collabAgent1:d.agent1,collabPhone1:d.phone1,
-    collabAgent2:d.agent2,collabPhone2:d.phone2,collabPrice:d.price,
+    collabOurAgent:d.ourAgent,collabOurPhone:d.ourPhone,
+    collabAgent2:d.agent2,collabPhone2:d.phone2,
+    collabExtraAgents:d.extraAgents,
+    collabPrice:d.price,
   };
   agreements.push(a); save();
   try{
     await fetch(SUPA_URL+'/rest/v1/agreements',{
       method:'POST',
       headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-      body:JSON.stringify({id:a.id,type:'collab',type_name:'הסכם שיתוף פעולה',agent:a.agent,agent_en:a.agentEn,agent_phone:'',agent_license:'',client_name:a.clientName,client_id:'',client_phone:a.clientPhone,addr:a.addr,sale_fee:a.saleFee,rent_fee:a.rentFee,vat_sale:false,vat_rent:false,notes:a.notes||'',lang:'he',excl:false,excl_from:'',excl_to:'',signature:sig,date_str:a.dateStr,pending_sign:!sig})
+      body:JSON.stringify({id:a.id,type:'collab',type_name:'הסכם שיתוף פעולה',agent:a.agent,agent_en:'',agent_phone:a.agentPhone,agent_license:a.agentLicense,client_name:a.clientName,client_id:'',client_phone:a.clientPhone,addr:a.addr,sale_fee:a.saleFee,rent_fee:a.rentFee,vat_sale:false,vat_rent:false,notes:a.notes||'',lang:'he',excl:false,excl_from:'',excl_to:'',signature:sig,date_str:a.dateStr,pending_sign:!sig})
     });
   }catch(e){console.log('collab sync err',e);}
   window._clientSignedAg=a;
+  try{ showCollabSuccess(a); }catch(e){ console.log('showCollabSuccess err',e); showScreen('screen-success'); }
+}
+
+function showCollabSuccess(a){
   showScreen('screen-success');
-  setTimeout(()=>showAfterWA(a),800);
+  const el=document.getElementById('screen-success');
+  if(!el) return;
+  const signLink=makeSignLink(a);
+  const ph=phoneToWA(a.clientPhone||'');
+  const agentName=a.collabAgent2||a.clientName||'הסוכן';
+  // WA message — no address, just agent name
+  const msgWA=encodeURIComponent('שלום,\n\nנשלח אליך הסכם שיתוף פעולה ע"י הסוכן '+a.agent+' מ-Kings Jerusalem.\n\n✍🏻 לחתימה:\n'+signLink);
+  const msgShare=encodeURIComponent('הסכם שיתוף פעולה — Kings Jerusalem\nסוכן: '+a.agent+'\nתאריך: '+a.dateStr);
+  el.innerHTML=`
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:28px 20px;text-align:center;background:var(--light-gray)">
+      <div style="width:56px;height:56px;background:#4A1060;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;border:2px solid #CE93D8">
+        <svg viewBox="0 0 36 36" fill="none" width="26" height="26"><path d="M7 18L15 26L29 10" stroke="#CE93D8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div style="font-family:'Playfair Display',serif;font-size:18px;margin-bottom:6px;color:#4A1060">הסכם שיתוף פעולה נשמר!</div>
+      <div style="font-size:12px;color:var(--gray);margin-bottom:20px;line-height:1.6">
+        <strong>${a.agent}</strong> ↔ <strong>${a.clientName}</strong><br>📍 ${a.addr}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:300px">
+        <a href="https://wa.me/${ph}?text=${msgWA}" target="_blank"
+          style="background:#25D366;border:none;border-radius:12px;padding:13px;font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;color:#fff;cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          שלח לחתימה בוואטסאפ
+        </a>
+        <button onclick="(function(){dlCollabPDF(window._clientSignedAg);})()"
+          style="background:#0E0E0E;border:none;border-radius:12px;padding:13px;font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;color:var(--gold-light);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+          ⬇️ הורד PDF
+        </button>
+        <button onclick="window.open('https://wa.me/?text=${msgShare}','_blank')"
+          style="background:#075E54;border:none;border-radius:12px;padding:13px;font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;color:#fff;cursor:pointer">
+          📤 שתף PDF בוואטסאפ
+        </button>
+        <button onclick="showScreen('screen-my-ag')"
+          style="background:none;border:1px solid #CE93D8;border-radius:12px;padding:11px;font-family:'Heebo',sans-serif;font-size:13px;color:#6A1B9A;cursor:pointer">
+          📂 ההסכמים שלי
+        </button>
+        <button onclick="showScreen('screen-dash')"
+          style="background:none;border:1px solid var(--border);border-radius:12px;padding:11px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--gray);cursor:pointer">
+          ← חזור לתפריט הראשי
+        </button>
+      </div>
+    </div>`;
+}
+
+function dlCollabPDF(a){
+  if(!a) a=window._clientSignedAg;
+  if(!a) return;
+  const html=buildCollabPDFHtml(a);
+  const w=window.open('','_blank');
+  if(!w){alert('אנא אפשר חלונות קופצים');return;}
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>{try{w.print();}catch(e){}},600);
 }
 
 function buildCollabPDFHtml(a){
-  const body=a.customText||collabContractText({agent1:a.collabAgent1||'',phone1:a.collabPhone1||'',agent2:a.collabAgent2||'',phone2:a.collabPhone2||'',addr:a.addr,price:a.collabPrice||'',saleFee:a.saleFee,rentFee:a.rentFee,clientName:a.clientName||'',clientPhone:a.clientPhone||'',notes:a.notes||''});
+  const ourAgent=a.collabOurAgent||a.agent||'';
+  const ourPhone=a.collabOurPhone||a.agentPhone||'';
+  const d={
+    ourAgent,ourPhone,
+    agent2:a.collabAgent2||'',phone2:a.collabPhone2||'',
+    addr:a.addr,price:a.collabPrice||'',
+    saleFee:a.saleFee,rentFee:a.rentFee,
+    notes:a.notes||'',
+    extraAgents:a.collabExtraAgents||[],
+  };
+  const body=a.customText||collabContractText(d);
   const sigImg=a.sig?'<img src="'+a.sig+'" style="max-width:200px;max-height:65px;display:block;margin-top:8px">'
     :'<div style="height:65px;border-bottom:1px solid #999;width:220px;margin-top:30px"></div>';
+  // Build agents info block
+  const extAgents=[{name:d.agent2,phone:d.phone2},...(d.extraAgents||[])];
+  const extAgentLines=extAgents.map((ag,i)=>'<br><strong>סוכן חיצוני'+(extAgents.length>1?' '+(i+1):'')+': </strong>'+ag.name+(ag.phone?' | '+ag.phone:'')).join('');
   return '<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><style>@page{size:A4;margin:0}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:10pt;color:#222;direction:rtl;width:210mm;min-height:297mm}.page{width:210mm;min-height:297mm;display:flex;flex-direction:column}.hdr{background:#0E0E0E;padding:11px 20px;display:flex;justify-content:space-between;align-items:center}.ht{color:#B8963E;font-size:14pt;font-weight:bold}.hs{font-size:8pt;color:#AAA;margin-top:2px}.hc{font-size:8pt;color:#888;text-align:left}.gold{height:2px;background:#B8963E}.body{padding:15px 20px;flex:1}.title{text-align:center;font-size:12pt;font-weight:bold;color:#4A1060;margin:10px 0 3px}.date{text-align:center;font-size:9pt;color:#888;margin-bottom:11px}.info{background:#F3E5F5;border:1px solid #CE93D8;border-radius:5px;padding:9px 13px;margin-bottom:12px;font-size:9pt;line-height:1.8}.info strong{color:#4A1060}.off{background:#1A1A1A;color:#CCC;border-radius:5px;padding:7px 13px;margin-bottom:12px;font-size:8pt;line-height:1.7}.off strong{color:#B8963E}.ct{font-size:9.5pt;line-height:1.9;white-space:pre-wrap;text-align:right;margin-bottom:11px}.sig-sec{border-top:1px solid #DDD;padding-top:11px;margin-top:8px}.ftr{background:#0E0E0E;color:#B8963E;padding:8px 20px;font-size:7pt;text-align:center;margin-top:auto}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="page"><div class="hdr"><div><div class="ht">Kings Jerusalem</div><div class="hs">LUXURY REAL ESTATE</div></div><div class="hc">קינג ג׳ורג׳ 52, ירושלים<br>02-9998228</div></div><div class="gold"></div><div class="body"><div class="title">🤝 הסכם שיתוף פעולה בין מתווכים</div><div class="date">תאריך: '
-    +a.dateStr+'</div><div class="info"><strong>סוכן מציג:</strong> '+(a.collabAgent1||'')+(a.collabPhone1?' | '+a.collabPhone1:'')+'<br><strong>סוכן מביא:</strong> '+(a.collabAgent2||'')+(a.collabPhone2?' | '+a.collabPhone2:'')+'<br><strong>נכס:</strong> '+a.addr+(a.collabPrice?' | ₪'+a.collabPrice:'')+'<br>'+(a.clientName&&a.clientName!==a.collabAgent1+' + '+a.collabAgent2?'<strong>לקוח:</strong> '+a.clientName+(a.clientPhone?' | '+a.clientPhone:'')+'<br>':'')+'<strong>מגיש ההסכם:</strong> '+a.agent+'</div><div class="off"><strong>בעל המשרד:</strong> זכריה דיין — Kings Jerusalem &nbsp;|&nbsp; <strong>ת.ז.:</strong> 68532365 &nbsp;|&nbsp; <strong>רישיון:</strong> 3142656</div><div class="ct">'+body.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div><div class="sig-sec"><div style="font-size:9pt;color:#555;margin-bottom:4px;font-weight:500">חתימת הצדדים:</div>'+sigImg+'<div style="font-size:7pt;color:#AAA;text-align:center;margin-top:9px">נחתם דיגיטלית '+a.dateStr+' דרך מערכת Kings Jerusalem Luxury Real Estate</div></div></div><div class="ftr">Kings Jerusalem Luxury Real Estate • קינג ג׳ורג׳ 52, ירושלים • 02-9998228</div></div></body></html>';
+    +a.dateStr+'</div><div class="info"><strong>סוכן מגיש (Kings Jerusalem): </strong>'+ourAgent+(ourPhone?' | '+ourPhone:'')+extAgentLines+'<br><strong>נכס:</strong> '+a.addr+(d.price?' | ₪'+d.price:'')+'</div><div class="off"><strong>בעל המשרד:</strong> זכריה דיין — Kings Jerusalem &nbsp;|&nbsp; <strong>ת.ז.:</strong> 68532365 &nbsp;|&nbsp; <strong>רישיון:</strong> 3142656</div><div class="ct">'+body.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div><div class="sig-sec"><div style="font-size:9pt;color:#555;margin-bottom:4px;font-weight:500">חתימת הסוכן החיצוני:</div>'+sigImg+'<div style="font-size:7pt;color:#AAA;text-align:center;margin-top:9px">נחתם דיגיטלית '+a.dateStr+' דרך מערכת Kings Jerusalem Luxury Real Estate</div></div></div><div class="ftr">Kings Jerusalem Luxury Real Estate • קינג ג׳ורג׳ 52, ירושלים • 02-9998228</div></div></body></html>';
 }
 
+</script>
+
+<!-- ══ GLOBAL CRASH GUARD — floating button always visible if screen is white ══ -->
+<div id="crash-guard" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:#0E0E0E;border:2px solid #B8963E;border-radius:14px;padding:14px 24px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;color:#B8963E;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.4)" onclick="document.getElementById('crash-guard').style.display='none'; try{showScreen(window._lastAgent?'screen-dash':'screen-login');}catch(e){location.reload();}">
+  ← חזור לתפריט הראשי
+</div>
+
+<script>
+// Show crash guard if no screen is active after 2 seconds
+(function checkForWhiteScreen(){
+  setTimeout(function(){
+    try {
+      const active = document.querySelector('.screen.active');
+      const guard = document.getElementById('crash-guard');
+      if(!guard) return;
+      // Only show guard if screen is truly empty (not just loading)
+      const isEmpty = !active || active.offsetHeight < 100;
+      guard.style.display = isEmpty ? 'block' : 'none';
+    } catch(e){}
+    checkForWhiteScreen();
+  }, 3000);
+})();
+
+// Also show guard whenever showScreen is called — hide it
+if(!window._showScreenOverrideApplied){
+  window._showScreenOverrideApplied=true;
+  const _origShowScreen = showScreen;
+  window.showScreen = function(id){
+    try { _origShowScreen(id); } catch(e){ console.log('showScreen crash:',e); try{_origShowScreen('screen-dash');}catch(e2){} }
+    const g=document.getElementById('crash-guard');
+    if(g) setTimeout(()=>{ try{ const a=document.querySelector('.screen.active'); g.style.display=(a&&a.offsetHeight>100)?'none':'block'; }catch(e){} }, 600);
+  };
+}
 </script>
 </body>
 </html>
