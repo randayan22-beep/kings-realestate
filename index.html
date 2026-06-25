@@ -396,7 +396,7 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
         <div class="fcard-title" style="margin-bottom:0;border-bottom:none;padding-bottom:0">הסכם שיתוף פעולה</div>
         <button onclick="resetCollabText()" style="font-size:10px;color:var(--gray);background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-family:'Heebo',sans-serif">↺ איפוס</button>
       </div>
-      <textarea id="collab-contract-ta" style="width:100%;min-height:260px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:11px;line-height:1.85;color:var(--gray);resize:vertical;direction:rtl"></textarea>
+      <textarea id="collab-contract-ta" style="width:100%;min-height:260px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:14px;line-height:1.85;color:var(--gray);resize:vertical;direction:rtl"></textarea>
     </div>
     <div class="sig-wrap">
       <div class="sig-label">חתימת הסוכנים — חתמו כאן באצבע</div>
@@ -424,7 +424,7 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
         <div class="fcard-title" style="margin-bottom:0;border-bottom:none;padding-bottom:0">הסכם תיווך</div>
         <button onclick="resetContractText()" style="font-size:10px;color:var(--gray);background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-family:'Heebo',sans-serif">↺ איפוס</button>
       </div>
-      <textarea id="contract-text" style="width:100%;min-height:220px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:11px;line-height:1.85;color:var(--gray);resize:vertical;direction:rtl" dir="rtl"></textarea>
+      <textarea id="contract-text" style="width:100%;min-height:220px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:14px;line-height:1.85;color:var(--gray);resize:vertical;direction:rtl" dir="rtl"></textarea>
     </div>
     <!-- Exclusivity contract — shown only when excl is on -->
     <div class="fcard" id="excl-contract-card" style="display:none;padding:14px">
@@ -432,7 +432,7 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
         <div class="fcard-title" style="margin-bottom:0;border-bottom:none;padding-bottom:0;color:#6A1B9A">✦ הסכם בלעדיות</div>
         <button onclick="resetExclText()" style="font-size:10px;color:var(--gray);background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-family:'Heebo',sans-serif">↺ איפוס</button>
       </div>
-      <textarea id="excl-contract-text" style="width:100%;min-height:260px;border:1px solid rgba(106,27,154,0.3);border-radius:8px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:11px;line-height:1.85;color:var(--gray);resize:vertical;direction:rtl" dir="rtl"></textarea>
+      <textarea id="excl-contract-text" style="width:100%;min-height:260px;border:1px solid rgba(106,27,154,0.3);border-radius:8px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:14px;line-height:1.85;color:var(--gray);resize:vertical;direction:rtl" dir="rtl"></textarea>
     </div>
     <div class="sig-wrap">
       <div id="dual-sig-note" style="display:none;background:#F3E5F5;border:1px solid rgba(106,27,154,0.3);border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:11px;color:#6A1B9A;line-height:1.5">⚠️ <strong>שים לב:</strong> החתימה הינה נוגעת לשני המסמכים — הסכם התיווך והסכם הבלעדיות כאחד.</div>
@@ -1775,7 +1775,7 @@ function openAgreementView(id, returnTo){
       <span style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--gold);font-weight:600">טקסט ההסכם (ניתן לעריכה)</span>
       <button onclick="document.getElementById('view-contract-ta').value=window._viewOrigText" style="font-size:10px;color:var(--gray);background:none;border:1px solid var(--border);border-radius:6px;padding:3px 7px;cursor:pointer;font-family:'Heebo',sans-serif">↺ איפוס</button>
     </div>
-    <textarea id="view-contract-ta" style="width:100%;min-height:220px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:11px;line-height:1.85;color:var(--gray);resize:vertical;direction:${a.lang==='en'?'ltr':'rtl'}">${rawText}</textarea>`;
+    <textarea id="view-contract-ta" style="width:100%;min-height:220px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:14px;line-height:1.85;color:var(--gray);resize:vertical;direction:${a.lang==='en'?'ltr':'rtl'}">${rawText}</textarea>`;
   window._viewOrigText = rawText;
 
   // Signature section
@@ -2286,7 +2286,7 @@ function submitQ(){
   questDB.push(rec); save();
   syncQToSupabase(rec); // sync to Supabase
   dlQPDF(rec);
-  setTimeout(()=>showScreen('screen-dash'),500);
+  setTimeout(()=>goToDash(),500);
 }
 
 /* ══ PDF AGREEMENT ══ */
@@ -2471,7 +2471,7 @@ function showAfterWA(a){
         <button onclick="shareAgreementWA('${String(a.id)}')" style="background:#075E54;border:none;border-radius:12px;padding:13px;font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;color:#fff;cursor:pointer">
           📤 שתף PDF בוואטסאפ
         </button>
-        <button onclick="showScreen('screen-dash')" style="background:none;border:1px solid var(--border);border-radius:12px;padding:12px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--gray);cursor:pointer">
+        <button onclick="goToDash()" style="background:none;border:1px solid var(--border);border-radius:12px;padding:12px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--gray);cursor:pointer">
           ← חזור לתפריט הראשי
         </button>
       </div>
@@ -3093,6 +3093,26 @@ function showAgentDetail(name){
     </div>`);
 }
 
+function goToDash(){
+  // Reset success screen innerHTML in case showAfterWA replaced it
+  const el = document.getElementById('screen-success');
+  if(el) el.innerHTML=`
+    <div class="ok-icon"><svg viewBox="0 0 36 36" fill="none" width="30" height="30"><path d="M7 18L15 26L29 10" stroke="#B8963E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="ok-title">ההסכם נחתם!</div>
+    <div class="ok-sub" id="ok-sub">ההסכם נשמר במערכת.</div>
+    <div class="ok-actions">
+      <button class="btn-dl" onclick="dlPDF()">⬇️ הורד PDF</button>
+      <a class="btn-wa" id="wa-btn" href="#" onclick="if(!this.dataset.sent){this.dataset.sent=1;sendWA();}return false;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        שלח ללקוח בוואטסאפ
+      </a>
+      <button class="btn-wa" id="share-btn" onclick="shareLastAgreement()" style="background:#075E54;margin-top:0">📤 שתף PDF בוואטסאפ</button>
+      <button class="btn-new" onclick="showScreen('screen-dash')">+ הסכם חדש</button>
+      <button class="btn-new" onclick="showScreen('screen-dash')" style="margin-top:4px;color:var(--gold);border-color:var(--gold)">← חזור לתפריט הראשי</button>
+    </div>`;
+  showScreen('screen-dash');
+}
+
 /* ══ COLLAB (BROKER COOPERATION) ══ */
 let _collabOrigText = '';
 let collabSigDrawn = false;
@@ -3226,7 +3246,7 @@ function buildCollabPDFHtml(a){
   const body=a.customText||collabContractText({agent1:a.collabAgent1||'',phone1:a.collabPhone1||'',agent2:a.collabAgent2||'',phone2:a.collabPhone2||'',addr:a.addr,price:a.collabPrice||'',saleFee:a.saleFee,rentFee:a.rentFee,clientName:a.clientName||'',clientPhone:a.clientPhone||'',notes:a.notes||''});
   const sigImg=a.sig?'<img src="'+a.sig+'" style="max-width:200px;max-height:65px;display:block;margin-top:8px">'
     :'<div style="height:65px;border-bottom:1px solid #999;width:220px;margin-top:30px"></div>';
-  return '<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><style>@page{size:A4;margin:0}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:10pt;color:#222;direction:rtl;width:210mm;min-height:297mm}.page{width:210mm;min-height:297mm;display:flex;flex-direction:column}.hdr{background:#0E0E0E;padding:11px 20px;display:flex;justify-content:space-between;align-items:center}.ht{color:#B8963E;font-size:14pt;font-weight:bold}.hs{font-size:8pt;color:#AAA;margin-top:2px}.hc{font-size:8pt;color:#888;text-align:left}.gold{height:2px;background:#B8963E}.body{padding:15px 20px;flex:1}.title{text-align:center;font-size:12pt;font-weight:bold;color:#4A1060;margin:10px 0 3px}.date{text-align:center;font-size:9pt;color:#888;margin-bottom:11px}.info{background:#F3E5F5;border:1px solid #CE93D8;border-radius:5px;padding:9px 13px;margin-bottom:12px;font-size:9pt;line-height:1.8}.info strong{color:#4A1060}.off{background:#1A1A1A;color:#CCC;border-radius:5px;padding:7px 13px;margin-bottom:12px;font-size:8pt;line-height:1.7}.off strong{color:#B8963E}.ct{font-size:9.5pt;line-height:1.9;white-space:pre-wrap;text-align:right;margin-bottom:11px}.sig-sec{border-top:1px solid #DDD;padding-top:11px;margin-top:8px}.ftr{background:#0E0E0E;color:#B8963E;padding:8px 20px;font-size:7pt;text-align:center;margin-top:auto}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="page"><div class="hdr"><div><div class="ht">Kings Jerusalem</div><div class="hs">LUXURY REAL ESTATE</div></div><div class="hc">קינג ג׳ורג׳ 52, ירושלים<br>02-9998228</div></div><div class="gold"></div><div class="body"><div class="title">🤝 הסכם שיתוף פעולה בין מתווכים</div><div class="date">תאריך: '
+  return '<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><style>@page{size:A4;margin:0}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:10pt;color:#222;direction:rtl;width:210mm;min-height:297mm}.page{width:210mm;min-height:297mm;display:flex;flex-direction:column}.hdr{background:#0E0E0E;padding:11px 20px;display:flex;justify-content:space-between;align-items:center}.ht{color:#B8963E;font-size:14pt;font-weight:bold}.hs{font-size:8pt;color:#AAA;margin-top:2px}.hc{font-size:8pt;color:#888;text-align:left}.gold{height:2px;background:#B8963E}.body{padding:15px 20px;flex:1}.title{text-align:center;font-size:12pt;font-weight:bold;color:#4A1060;margin:10px 0 3px}.date{text-align:center;font-size:9pt;color:#888;margin-bottom:11px}.info{background:#F3E5F5;border:1px solid #CE93D8;border-radius:5px;padding:9px 13px;margin-bottom:12px;font-size:9pt;line-height:1.8}.info strong{color:#4A1060}.off{background:#1A1A1A;color:#CCC;border-radius:5px;padding:7px 13px;margin-bottom:12px;font-size:8pt;line-height:1.7}.off strong{color:#B8963E}.ct{font-size:9.5pt;line-height:1.9;white-space:pre-wrap;text-align:right;margin-bottom:11px}.sig-sec{border-top:1px solid #DDD;padding-top:11px;margin-top:8px}.ftr{background:#0E0E0E;color:#B8963E;padding:8px 20px;font-size:7pt;text-align:center;margin-top:auto}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="page"><div class="hdr"><div style="display:flex;align-items:center;gap:10px"><img src="${LOGO_DARK}" style="height:40px;width:auto;mix-blend-mode:screen;filter:brightness(1.5)"><div><div class="ht">Kings Jerusalem</div><div class="hs">LUXURY REAL ESTATE</div></div></div><div class="hc">קינג ג׳ורג׳ 52, ירושלים<br>02-9998228</div></div><div class="gold"></div><div class="body"><div class="title">🤝 הסכם שיתוף פעולה בין מתווכים</div><div class="date">תאריך: '
     +a.dateStr+'</div><div class="info"><strong>סוכן מציג:</strong> '+(a.collabAgent1||'')+(a.collabPhone1?' | '+a.collabPhone1:'')+'<br><strong>סוכן מביא:</strong> '+(a.collabAgent2||'')+(a.collabPhone2?' | '+a.collabPhone2:'')+'<br><strong>נכס:</strong> '+a.addr+(a.collabPrice?' | ₪'+a.collabPrice:'')+'<br>'+(a.clientName&&a.clientName!==a.collabAgent1+' + '+a.collabAgent2?'<strong>לקוח:</strong> '+a.clientName+(a.clientPhone?' | '+a.clientPhone:'')+'<br>':'')+'<strong>מגיש ההסכם:</strong> '+a.agent+'</div><div class="off"><strong>בעל המשרד:</strong> זכריה דיין — Kings Jerusalem &nbsp;|&nbsp; <strong>ת.ז.:</strong> 68532365 &nbsp;|&nbsp; <strong>רישיון:</strong> 3142656</div><div class="ct">'+body.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div><div class="sig-sec"><div style="font-size:9pt;color:#555;margin-bottom:4px;font-weight:500">חתימת הצדדים:</div>'+sigImg+'<div style="font-size:7pt;color:#AAA;text-align:center;margin-top:9px">נחתם דיגיטלית '+a.dateStr+' דרך מערכת Kings Jerusalem Luxury Real Estate</div></div></div><div class="ftr">Kings Jerusalem Luxury Real Estate • קינג ג׳ורג׳ 52, ירושלים • 02-9998228</div></div></body></html>';
 }
 
