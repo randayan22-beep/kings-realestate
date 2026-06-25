@@ -832,10 +832,10 @@ async function supaDelete(table, filter){
   }catch(e){console.error('supaDelete error:',e);return false;}
 }
 
-async function syncToSupabase(agreement){
+async function syncToSupabase(agreement, retryCount=0){
   try {
     const res = await supaFetch('agreements','POST',{
-      id: agreement.id,
+      id: String(agreement.id),
       type: agreement.type,
       type_name: agreement.typeName,
       agent: agreement.agent,
@@ -863,6 +863,7 @@ async function syncToSupabase(agreement){
     if(res && !res.ok && res.status){
       const errText = await res.text().catch(()=>'');
       console.error('Supabase agreements sync failed:', res.status, errText);
+      if(retryCount===0) throw new Error('sync failed: '+res.status);
     }
 
     // sync client (upsert)
@@ -875,7 +876,13 @@ async function syncToSupabase(agreement){
     if(pi) await supaFetch('properties','POST',{
       addr: pi.addr, cnt: pi.cnt, agents: pi.agents, seen: pi.seen
     }, true);
-  } catch(e){ console.error('Supabase sync error:',e); }
+  } catch(e){
+    console.error('Supabase sync error:',e);
+    if(retryCount===0){
+      console.log('Retrying sync in 3s...');
+      setTimeout(()=>syncToSupabase(agreement,1), 3000);
+    }
+  }
 }
 
 async function syncQToSupabase(q){
@@ -1933,7 +1940,7 @@ async function checkRemoteSign(){
     document.getElementById('screen-remote').classList.add('active');
     document.getElementById('r-contract').innerHTML='<div style="text-align:center;padding:20px;color:var(--gray)">⏳ טוען הסכם...</div>';
     try {
-      const res=await fetch(`${SUPA_URL}/rest/v1/agreements?id=eq.${agId}&limit=1`,{
+      const res=await fetch(`${SUPA_URL}/rest/v1/agreements?id=eq.${String(agId)}&limit=1`,{
         headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
       });
       const rows=await res.json();
