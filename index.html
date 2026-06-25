@@ -808,6 +808,19 @@ async function supaFetch(table, method, body, upsert=false){
     },
     body: body ? JSON.stringify(body) : undefined,
   });
+  // Log any non-success responses
+  if(!res.ok && method!=='GET'){
+    const errBody = await res.clone().text();
+    console.error(`supaFetch ${method} ${table} failed: ${res.status}`, errBody);
+    // Show visible toast for agreements failures
+    if(table==='agreements'){
+      const toast=document.createElement('div');
+      toast.style.cssText='position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#C62828;color:#fff;padding:12px 20px;border-radius:10px;font-family:Heebo,sans-serif;font-size:11px;z-index:9999;max-width:320px;text-align:center;direction:ltr;word-break:break-all';
+      toast.textContent='DB Error '+res.status+': '+errBody.slice(0,120);
+      document.body.appendChild(toast);
+      setTimeout(()=>toast.remove(),12000);
+    }
+  }
   if(method==='GET') return res.json();
   return res;
 }
