@@ -288,7 +288,7 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
         <div class="fgroup"><label class="flabel">גודל במ״ר *</label><input class="finput" id="f-prop-size" type="number" placeholder="100"></div>
         <div class="fgroup"><label class="flabel">קומה / חדרים / הערות</label><input class="finput" id="f-prop-notes" type="text" placeholder="לדוגמה: קומה 3, 4 חדרים"></div>
         <div class="excl-toggle" onclick="togglePropExcl('fp')" style="margin-bottom:8px">
-          <span class="excl-toggle-lbl">בלעדיות לנכס</span>
+          <span class="excl-toggle-lbl">כבר בבלעדיות?</span>
           <div class="tog" id="fp-excl-tog"></div>
         </div>
         <div class="excl-dates" id="fp-excl-dates">
@@ -2090,11 +2090,21 @@ function loadRemoteSign(data){
             vatSale:data.vatSale,vatRent:data.vatRent,exclFrom:data.exclFrom||'',exclTo:data.exclTo||'',notes:data.notes||''};
   const ct=document.getElementById('r-contract');
   ct.className='contract-box'+(data.lang==='en'?' en':'');
+  const mainText = data.customText || contractText(data.type,data.lang||'he',d);
+  const hasExcl = data.excl && data.exclContractText;
+  const exclBlock = hasExcl ? `
+    <div style="margin-top:18px;padding-top:16px;border-top:2px dashed #CE93D8">
+      <div style="text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #E1BEE7">
+        <div style="font-size:13px;font-weight:700;color:#6A1B9A">✦ ${data.lang==='en'?'Exclusivity Agreement':'הסכם בלעדיות לשיווק נכס'}</div>
+      </div>
+      <div style="white-space:pre-line;font-size:11px">${data.exclContractText}</div>
+      <div style="background:#F3E5F5;border:1px solid rgba(106,27,154,0.3);border-radius:6px;padding:8px 12px;margin-top:10px;font-size:10px;color:#6A1B9A">⚠️ ${data.lang==='en'?'This signature applies to both documents — the brokerage agreement and the exclusivity agreement.':'החתימה הינה נוגעת לשני המסמכים — הסכם התיווך והסכם הבלעדיות כאחד.'}</div>
+    </div>` : '';
   ct.innerHTML=`<div style="text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--gold-pale)">
     <div style="font-family:'Playfair Display',serif;font-size:14px;color:var(--gold)">Kings Jerusalem Luxury Real Estate</div>
     <div style="font-size:12px;font-weight:600;margin-top:4px">${data.typeName}</div>
     <div style="font-size:10px;color:var(--gray)">תאריך: ${data.dateStr}</div>
-  </div><div style="white-space:pre-line;font-size:11px">${contractText(data.type,data.lang||'he',d)}</div>`;
+  </div><div style="white-space:pre-line;font-size:11px">${mainText}</div>${exclBlock}`;
   showScreen('screen-remote');
   setTimeout(()=>setupRemoteCanvas(),200);
 }
