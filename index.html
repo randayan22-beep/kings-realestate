@@ -932,17 +932,19 @@ async function loadFromSupabase(){
     if(ags&&ags.length){
       agreements = ags.map(a=>({
         id:a.id, type:a.type, typeName:a.type_name,
-        agent:a.agent, agentPhone:a.agent_phone, agentLicense:a.agent_license,
-        clientName:a.client_name, clientId:a.client_id, clientPhone:a.client_phone,
-        addr:a.addr, saleFee:a.sale_fee, rentFee:a.rent_fee,
-        vatSale:a.vat_sale, vatRent:a.vat_rent, notes:a.notes,
-        lang:a.lang, excl:a.excl, exclFrom:a.excl_from, exclTo:a.excl_to,
-        sig:a.signature, dateStr:a.date_str, date:a.created_at,
+        agent:a.agent, agentEn:a.agent_en||'', agentId:a.agent_id||'', agentPhone:a.agent_phone||'', agentLicense:a.agent_license||'',
+        clientName:a.client_name, clientId:a.client_id||'', clientPhone:a.client_phone,
+        addr:a.addr, propPrice:a.prop_price||'', saleFee:a.sale_fee, rentFee:a.rent_fee,
+        vatSale:a.vat_sale, vatRent:a.vat_rent, notes:a.notes||'',
+        lang:a.lang||'he', excl:a.excl||false, exclFrom:a.excl_from||'', exclTo:a.excl_to||'',
+        exclContractText:a.excl_contract_text||'', customText:a.custom_text||'',
+        sig:a.signature||'', dateStr:a.date_str, date:a.created_at,
+        pendingSign:a.pending_sign||false,
       }));
       localStorage.setItem('k_ag',JSON.stringify(agreements));
     }
     if(cls&&cls.length){ clientsDB=cls.map(c=>({id:c.id,name:c.name,phone:c.phone,seen:c.seen})); localStorage.setItem('k_cl',JSON.stringify(clientsDB)); }
-    if(prs&&prs.length){ propsDB=prs.map(p=>({addr:p.addr,cnt:p.cnt,agents:p.agents||[],seen:p.seen})); localStorage.setItem('k_pr',JSON.stringify(propsDB)); }
+    if(prs&&prs.length){ propsDB=prs.map(p=>({addr:p.addr,cnt:p.cnt,agents:p.agents||[],seen:p.seen,price:p.price||'',size:p.size||'',notes:p.notes||'',exclOn:p.excl_on||false,exclFrom:p.excl_from||'',exclTo:p.excl_to||''})); localStorage.setItem('k_pr',JSON.stringify(propsDB)); }
   } catch(e){ console.log('Supabase load error:',e); }
 }
 
@@ -1042,6 +1044,8 @@ function loginAgent(a){
   setTimeout(()=>checkNewlySigned(a.name), 1500);
   // Start background polling (every 60s while app is open)
   startBgPolling(a.name);
+  // Sync clients & properties from Supabase so autocomplete has fresh data
+  loadFromSupabase().catch(e=>console.log('agent data sync err',e));
 }
 
 /* ══ NOTIFICATIONS ══ */
@@ -1815,6 +1819,7 @@ function openAgreementView(id, returnTo){
   const d={name:a.clientName,id:a.clientId,phone:a.clientPhone,addr:a.addr,
            saleFee:a.saleFee,rentFee:a.rentFee,vatSale:a.vatSale,vatRent:a.vatRent,notes:a.notes||'',exclFrom:a.exclFrom||'',exclTo:a.exclTo||'',propPrice:a.propPrice||''};
   const rawText = a.customText || contractText(a.type, a.lang||'he', d);
+  const hasExclView = a.excl && a.exclContractText;
 
   const ct = document.getElementById('view-ag-contract');
   ct.innerHTML = `
@@ -1822,8 +1827,18 @@ function openAgreementView(id, returnTo){
       <span style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--gold);font-weight:600">טקסט ההסכם (ניתן לעריכה)</span>
       <button onclick="document.getElementById('view-contract-ta').value=window._viewOrigText" style="font-size:10px;color:var(--gray);background:none;border:1px solid var(--border);border-radius:6px;padding:3px 7px;cursor:pointer;font-family:'Heebo',sans-serif">↺ איפוס</button>
     </div>
-    <textarea id="view-contract-ta" style="width:100%;min-height:220px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:14px;line-height:1.85;color:var(--gray);resize:vertical;direction:${a.lang==='en'?'ltr':'rtl'}">${rawText}</textarea>`;
+    <textarea id="view-contract-ta" style="width:100%;min-height:220px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:14px;line-height:1.85;color:var(--gray);resize:vertical;direction:${a.lang==='en'?'ltr':'rtl'}">${rawText}</textarea>
+    ${hasExclView?`
+    <div style="margin-top:18px;padding-top:16px;border-top:2px dashed #CE93D8">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#6A1B9A;font-weight:600">✦ הסכם בלעדיות (ניתן לעריכה)</span>
+        <button onclick="document.getElementById('view-excl-ta').value=window._viewOrigExclText" style="font-size:10px;color:var(--gray);background:none;border:1px solid var(--border);border-radius:6px;padding:3px 7px;cursor:pointer;font-family:'Heebo',sans-serif">↺ איפוס</button>
+      </div>
+      <textarea id="view-excl-ta" style="width:100%;min-height:200px;border:1px solid rgba(106,27,154,0.3);border-radius:8px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:14px;line-height:1.85;color:var(--gray);resize:vertical;direction:rtl">${a.exclContractText}</textarea>
+      <div style="background:#F3E5F5;border:1px solid rgba(106,27,154,0.3);border-radius:6px;padding:8px 12px;margin-top:10px;font-size:11px;color:#6A1B9A">⚠️ החתימה הינה נוגעת לשני המסמכים — הסכם התיווך והסכם הבלעדיות כאחד.</div>
+    </div>` : ''}`;
   window._viewOrigText = rawText;
+  window._viewOrigExclText = a.exclContractText || '';
 
   // Signature section
   if(a.sig){
@@ -1954,15 +1969,30 @@ function printInIframe(html){
 function dlViewPDF(){
   const a=agreements.find(x=>String(x.id)===String(viewingAgreementId));
   if(!a)return;
-  // Save any edits from the view textarea
+  let changed=false;
+  // Save any edits from the main contract textarea
   const ta=document.getElementById('view-contract-ta');
   if(ta){
     const edited=ta.value;
     if(edited!==window._viewOrigText){
-      const idx=agreements.findIndex(x=>String(x.id)===String(viewingAgreementId));
-      if(idx>=0){agreements[idx].customText=edited;save();}
       a.customText=edited;
+      changed=true;
     }
+  }
+  // Save any edits from the exclusivity textarea (if shown)
+  const exclTa=document.getElementById('view-excl-ta');
+  if(exclTa){
+    const editedExcl=exclTa.value;
+    if(editedExcl!==window._viewOrigExclText){
+      a.exclContractText=editedExcl;
+      changed=true;
+    }
+  }
+  if(changed){
+    const idx=agreements.findIndex(x=>String(x.id)===String(viewingAgreementId));
+    if(idx>=0) agreements[idx]=a;
+    save();
+    syncToSupabase(a); // persist edits to Supabase too
   }
   if(a.type==='collab'){
     printInIframe(buildCollabPDFHtml(a));
