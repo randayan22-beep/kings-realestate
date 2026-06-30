@@ -305,7 +305,7 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
               <option value="custom">מותאם אישית (תאריך ידני)</option>
             </select>
           </div>
-          <div class="fgroup" id="fp-excl-to-wrap"><label class="flabel">עד תאריך</label><input class="finput" id="fp-excl-to" type="date" readonly></div>
+          <div class="fgroup" id="fp-excl-to-wrap" style="display:none"><label class="flabel">עד תאריך</label><input class="finput" id="fp-excl-to" type="date" readonly></div>
         </div>
       </div>
     </div>
@@ -348,7 +348,7 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
             <option value="custom">מותאם אישית (תאריך ידני)</option>
           </select>
         </div>
-        <div class="fgroup" id="f-excl-to-wrap"><label class="flabel">עד תאריך</label><input class="finput" id="f-excl-to" type="date" readonly></div>
+        <div class="fgroup" id="f-excl-to-wrap" style="display:none"><label class="flabel">עד תאריך</label><input class="finput" id="f-excl-to" type="date" readonly></div>
       </div>
     </div>
     <!-- Notes -->
@@ -584,7 +584,7 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
             <option value="custom">מותאם אישית (תאריך ידני)</option>
           </select>
         </div>
-        <div class="fgroup" id="ap-excl-to-wrap"><label class="flabel">עד תאריך</label><input class="finput" id="ap-excl-to" type="date" readonly></div>
+        <div class="fgroup" id="ap-excl-to-wrap" style="display:none"><label class="flabel">עד תאריך</label><input class="finput" id="ap-excl-to" type="date" readonly></div>
       </div>
       <div style="display:flex;gap:8px;margin-top:4px">
         <button class="btn-modal-cancel" onclick="document.getElementById('add-prop-form').style.display='none'">ביטול</button>
@@ -624,7 +624,7 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
           <option value="custom">מותאם אישית (תאריך ידני)</option>
         </select>
       </div>
-      <div class="fgroup" id="ep-excl-to-wrap"><label class="flabel">עד תאריך</label><input class="finput" id="ep-excl-to" type="date" readonly></div>
+      <div class="fgroup" id="ep-excl-to-wrap" style="display:none"><label class="flabel">עד תאריך</label><input class="finput" id="ep-excl-to" type="date" readonly></div>
     </div>
     <div class="modal-actions">
       <button class="btn-modal-cancel" onclick="document.getElementById('edit-prop-modal').classList.remove('open')">ביטול</button>
@@ -1231,21 +1231,19 @@ function recalcExclEnd(prefix){
   if(!fromEl || !durEl || !toEl) return;
 
   if(durEl.value === 'custom'){
-    // Let the user pick the end date manually
+    // Show the end-date field and let the user pick it manually
     toEl.readOnly = false;
     if(toWrap){
+      toWrap.style.display = '';
       const lbl = toWrap.querySelector('.flabel');
       if(lbl) lbl.textContent = 'עד תאריך (ידני)';
     }
     return;
   }
 
-  // Auto-calc: readonly, computed from start date + N months
+  // Preset duration: hide the end-date field entirely, auto-calc behind the scenes
+  if(toWrap) toWrap.style.display = 'none';
   toEl.readOnly = true;
-  if(toWrap){
-    const lbl = toWrap.querySelector('.flabel');
-    if(lbl) lbl.textContent = 'עד תאריך';
-  }
   if(!fromEl.value) return; // wait until a start date is chosen
   const months = parseInt(durEl.value, 10);
   const start = new Date(fromEl.value);
@@ -1386,7 +1384,35 @@ function toggleVat(t){
   }
 }
 
+function computeExclEndDate(fromDateStr, durationVal){
+  // Shared helper: given a start date string (YYYY-MM-DD) and either a number
+  // of months or the literal string 'custom', returns the computed end date
+  // (or null when there isn't enough info to compute one).
+  if(!fromDateStr) return null;
+  if(durationVal === 'custom') return null; // caller should use the manually-entered field instead
+  const months = parseInt(durationVal, 10);
+  if(isNaN(months)) return null;
+  const start = new Date(fromDateStr);
+  if(isNaN(start.getTime())) return null;
+  const end = new Date(start);
+  end.setMonth(end.getMonth() + months);
+  const yyyy = end.getFullYear();
+  const mm = String(end.getMonth()+1).padStart(2,'0');
+  const dd = String(end.getDate()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 function getFormData(){
+  const exclFromVal = document.getElementById('f-excl-from').value;
+  const exclDurEl = document.getElementById('f-excl-duration');
+  const exclDurVal = exclDurEl ? exclDurEl.value : '6';
+  // Recompute the end date directly from (start date + duration) rather than
+  // trusting the field's current .value — this is bulletproof even if the
+  // onchange handler somehow didn't fire on this exact value.
+  const computedExclTo = computeExclEndDate(exclFromVal, exclDurVal);
+  const exclToVal = (exclDurVal === 'custom')
+    ? document.getElementById('f-excl-to').value   // manual entry mode
+    : (computedExclTo || document.getElementById('f-excl-to').value); // fallback to field if computation failed
   return {
     name: document.getElementById('f-name').value.trim(),
     id:   document.getElementById('f-id').value.trim(),
@@ -1394,8 +1420,8 @@ function getFormData(){
     addr: document.getElementById('f-addr').value.trim(),
     saleFee: document.getElementById('f-sale-fee').value!=='' ? document.getElementById('f-sale-fee').value : null,
     rentFee: document.getElementById('f-rent-fee').value!=='' ? document.getElementById('f-rent-fee').value : null,
-    exclFrom:document.getElementById('f-excl-from').value,
-    exclTo:  document.getElementById('f-excl-to').value,
+    exclFrom: exclFromVal,
+    exclTo:   exclToVal,
     notes:   document.getElementById('f-notes').value.trim(),
     vatSale, vatRent,
   };
