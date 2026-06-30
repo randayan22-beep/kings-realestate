@@ -2201,12 +2201,11 @@ async function submitRemote(){
       pendingSign:false,
     });
   }
-  // Update clients DB
-  if(id){
-    const ci=clientsDB.findIndex(c=>c.id===id);
-    if(ci>=0){clientsDB[ci].name=name;clientsDB[ci].phone=phone;}
-    else clientsDB.push({name,id,phone,seen:new Date().toISOString()});
-  }
+  // Update clients DB — always save (even without ID, using phone-based fallback key)
+  const clientKey = id || ('ph_'+phone.replace(/\D/g,''));
+  const ci=clientsDB.findIndex(c=>(c.id||('ph_'+(c.phone||'').replace(/\D/g,'')))===clientKey);
+  if(ci>=0){clientsDB[ci].name=name;clientsDB[ci].phone=phone;clientsDB[ci].id=clientKey;}
+  else clientsDB.push({name,id:clientKey,phone,seen:new Date().toISOString()});
   save();
 
   // Show success
@@ -2289,6 +2288,7 @@ async function submitAgreement(requireSig=true){
   try{
   const sig=sigDrawn ? document.getElementById('sig-c').toDataURL('image/png') : '';
   const d=getFormData();
+  if(!d.name||!d.phone||!d.addr){alert('נא למלא שם, טלפון וכתובת נכס');return;}
   // Use edited contract text if modified
   const editedText = document.getElementById('contract-text')?.value || contractText(formType,lang,d);
   const hasExclData = exclOn && d.exclFrom && d.exclTo;
@@ -2311,10 +2311,11 @@ async function submitAgreement(requireSig=true){
     else Object.assign(propsDB[pi2],{price,size,notes:pnotes,exclOn:fpExclOn,
       exclFrom:propEntry.exclFrom,exclTo:propEntry.exclTo});
   }
+  const clientKey = d.id || ('ph_'+d.phone.replace(/\D/g,''));
   const a={
     id:Date.now(),type:formType,typeName:FNAMES[formType]['he'],
     agent:agent.name,agentEn:agent.nameEn||agent.name,agentId:agent.id||'',agentPhone:agent.phone,agentLicense:agent.license,
-    clientName:d.name,clientId:d.id,clientPhone:d.phone,
+    clientName:d.name,clientId:clientKey,clientPhone:d.phone,
     addr:d.addr,saleFee:d.saleFee,rentFee:d.rentFee,
     vatSale:d.vatSale,vatRent:d.vatRent,notes:d.notes,
     lang,excl:exclOn,exclFrom:d.exclFrom,exclTo:d.exclTo,
@@ -2325,9 +2326,12 @@ async function submitAgreement(requireSig=true){
     exclContractText: editedExclText,
   };
   agreements.push(a);
-  const ci=clientsDB.findIndex(c=>c.id===d.id);
-  if(ci>=0){clientsDB[ci]={name:d.name,id:d.id,phone:d.phone,seen:now.toISOString(),agentName:agent.name};}
-  else clientsDB.push({name:d.name,id:d.id,phone:d.phone,seen:now.toISOString(),agentName:agent.name});
+  // Client key already computed above (clientKey) — use it consistently
+  // (Supabase clients.id is the primary key — an empty string would collide
+  // across every ID-less client, silently overwriting/skipping their records)
+  const ci=clientsDB.findIndex(c=>(c.id||('ph_'+(c.phone||'').replace(/\D/g,'')))===clientKey);
+  if(ci>=0){clientsDB[ci]={name:d.name,id:clientKey,phone:d.phone,seen:now.toISOString(),agentName:agent.name};}
+  else clientsDB.push({name:d.name,id:clientKey,phone:d.phone,seen:now.toISOString(),agentName:agent.name});
   const pi=propsDB.findIndex(p=>p.addr.toLowerCase()===d.addr.toLowerCase());
   if(pi>=0){propsDB[pi].cnt++;propsDB[pi].seen=now.toISOString();if(!propsDB[pi].agents.includes(agent.name))propsDB[pi].agents.push(agent.name);}
   else propsDB.push({addr:d.addr,cnt:1,agents:[agent.name],seen:now.toISOString()});
@@ -2397,12 +2401,36 @@ async function dlPDF(){
   }
 }
 function buildCombinedPDFHtml(a){
-  // Build page 1 (brokerage) + page 2 (exclusivity) in one HTML
+  // Build page 1 (brokerage) + page 2 (exclusivity) as TWO separate printed pages.
+  // IMPORTANT: both buildPDFHtml and buildExclPDFHtml define a class called
+  // ".page" (with DIFFERENT rules in each). If we just concatenate both
+  // <style> blocks, the second one silently overrides the first due to CSS
+  // cascade — breaking page1's layout and removing the page-break. To avoid
+  // any collision we rename every class in page2's CSS + HTML to ep-* (excl page).
   const page1 = buildPDFHtml(a);
-  const page2body = buildExclPDFHtml(a);
-  // Extract body content of page2 and insert as second page in page1
-  const page2content = page2body.match(/<body>([\s\S]*)<\/body>/)?.[1]||'';
-  return page1.replace('</body></html>', page2content + '</body></html>');
+  const page2 = buildExclPDFHtml(a);
+
+  let page2Style = page2.match(/<style>([\s\S]*?)<\/style>/)?.[1] || '';
+  let page2Body  = page2.match(/<body>([\s\S]*)<\/body>/)?.[1] || '';
+
+  // Every class used inside buildExclPDFHtml — prefix each with "ep-" everywhere
+  // (both in the CSS selectors and in the HTML class="" attributes).
+  const page2Classes = ['page','hdr','hdr-logo','hdr-contact','gold-line','body',
+    'doc-title','doc-date','info-box','office-box','contract-body','ftr','dual-note'];
+  page2Classes.forEach(cls=>{
+    // Rename in CSS: ".cls" -> ".ep-cls" (only as a full class token, not partial match)
+    page2Style = page2Style.replace(new RegExp('\\.'+cls+'(?=[\\s,{.:])','g'), '.ep-'+cls);
+    // Rename in HTML: class="cls" or class="cls other" -> class="ep-cls ..."
+    page2Body = page2Body.replace(new RegExp('class="'+cls+'"','g'), 'class="ep-'+cls+'"');
+    page2Body = page2Body.replace(new RegExp('class="'+cls+' ','g'), 'class="ep-'+cls+' ');
+  });
+
+  // Force the renamed page2 .ep-page to start on a fresh printed page
+  page2Style += `\n.ep-page{page-break-before:always}`;
+
+  let result = page1.replace('</head>', `<style>${page2Style}</style></head>`);
+  result = result.replace('</body></html>', page2Body + '</body></html>');
+  return result;
 }
 
 function buildPDFHtml(a){
@@ -2437,11 +2465,11 @@ function buildPDFHtml(a){
   .body{padding:15px 20px;flex:1}
   .title{text-align:center;font-size:12pt;font-weight:bold;color:#333;margin:10px 0 3px}
   .date{text-align:center;font-size:9pt;color:#888;margin-bottom:11px}
-  .info{background:#F5EDD8;border:1px solid #B8963E;border-radius:5px;padding:8px 12px;margin-bottom:9px;font-size:9.5pt;line-height:1.65}
+  .info{background:#F5EDD8;border:1px solid #B8963E;border-radius:5px;padding:9px 13px;margin-bottom:10px;font-size:10.5pt;line-height:1.7}
   .info strong{color:#7A5010}
   .off{background:#1A1A1A;color:#CCC;border-radius:5px;padding:6px 12px;margin-bottom:9px;font-size:9pt;line-height:1.55}
   .off strong{color:#B8963E}
-  .ct{font-size:10pt;line-height:1.6;white-space:pre-wrap;text-align:${align};margin-bottom:9px}
+  .ct{font-size:11.5pt;line-height:1.7;white-space:pre-wrap;text-align:${align};margin-bottom:10px}
   .sig-sec{border-top:1px solid #DDD;padding-top:11px;margin-top:8px}
   .sig-lbl{font-size:9pt;color:#555;margin-bottom:4px;font-weight:500}
   .stamp{font-size:9pt;color:#AAA;text-align:center;margin-top:9px}
@@ -2487,10 +2515,11 @@ async function quickSendWA(){
   const now=new Date();
   const hasExclData = exclOn && d.exclFrom && d.exclTo;
   const exclText = hasExclData ? (document.getElementById('excl-contract-text')?.value || exclAgreementText(d, agent?agent.name:'')) : null;
+  const clientKey = d.id || ('ph_'+d.phone.replace(/\D/g,''));
   const a={
     id:Date.now(),type:formType,typeName:FNAMES[formType]['he'],
     agent:agent.name,agentEn:agent.nameEn||agent.name,agentId:agent.id||'',agentPhone:agent.phone||'',agentLicense:agent.license||'',
-    clientName:d.name,clientId:d.id||'',clientPhone:d.phone,
+    clientName:d.name,clientId:clientKey,clientPhone:d.phone,
     addr:d.addr,saleFee:d.saleFee,rentFee:d.rentFee,
     vatSale,vatRent,notes:d.notes,
     lang,excl:exclOn,exclFrom:d.exclFrom,exclTo:d.exclTo,
@@ -2501,8 +2530,12 @@ async function quickSendWA(){
     propPrice:d.propPrice||'',
   };
   agreements.push(a);
-  // Update DBs
-  if(d.id){const ci=clientsDB.findIndex(c=>c.id===d.id);if(ci>=0)clientsDB[ci]={name:d.name,id:d.id,phone:d.phone,seen:now.toISOString(),agentName:agent.name};else clientsDB.push({name:d.name,id:d.id,phone:d.phone,seen:now.toISOString(),agentName:agent.name});}
+  // Update DBs — always save client (even without ID, using phone-based fallback key)
+  // so it reaches Supabase (clients.id is the primary key — an empty string
+  // would collide across every ID-less client otherwise)
+  const ci=clientsDB.findIndex(c=>(c.id||('ph_'+(c.phone||'').replace(/\D/g,'')))===clientKey);
+  if(ci>=0) clientsDB[ci]={name:d.name,id:clientKey,phone:d.phone,seen:now.toISOString(),agentName:agent.name};
+  else clientsDB.push({name:d.name,id:clientKey,phone:d.phone,seen:now.toISOString(),agentName:agent.name});
   const pi=propsDB.findIndex(p=>p.addr.toLowerCase()===d.addr.toLowerCase());
   if(pi>=0){propsDB[pi].cnt++;propsDB[pi].seen=now.toISOString();}
   else propsDB.push({addr:d.addr,cnt:1,agents:[agent.name],seen:now.toISOString()});
@@ -3342,7 +3375,7 @@ function buildCollabPDFHtml(a){
   const body=a.customText||collabContractText({agent1:a.collabAgent1||'',phone1:a.collabPhone1||'',agent2:a.collabAgent2||'',phone2:a.collabPhone2||'',addr:a.addr,price:a.collabPrice||'',saleFee:a.saleFee,rentFee:a.rentFee,clientName:a.clientName||'',clientPhone:a.clientPhone||'',notes:a.notes||''});
   const sigImg=a.sig?'<img src="'+a.sig+'" style="max-width:200px;max-height:65px;display:block;margin-top:8px">'
     :'<div style="height:65px;border-bottom:1px solid #999;width:220px;margin-top:30px"></div>';
-  return '<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><style>@page{size:A4;margin:0}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:10pt;color:#222;direction:rtl;width:210mm;min-height:297mm}.page{width:210mm;min-height:297mm;display:flex;flex-direction:column}.hdr{background:#0E0E0E;padding:11px 20px;display:flex;justify-content:space-between;align-items:center}.ht{color:#B8963E;font-size:14pt;font-weight:bold}.hs{font-size:9pt;color:#AAA;margin-top:2px}.hc{font-size:9pt;color:#888;text-align:left}.gold{height:2px;background:#B8963E}.body{padding:15px 20px;flex:1}.title{text-align:center;font-size:12pt;font-weight:bold;color:#4A1060;margin:10px 0 3px}.date{text-align:center;font-size:9pt;color:#888;margin-bottom:11px}.info{background:#F3E5F5;border:1px solid #CE93D8;border-radius:5px;padding:9px 13px;margin-bottom:12px;font-size:9pt;line-height:1.8}.info strong{color:#4A1060}.off{background:#1A1A1A;color:#CCC;border-radius:5px;padding:7px 13px;margin-bottom:12px;font-size:9pt;line-height:1.7}.off strong{color:#B8963E}.ct{font-size:9.5pt;line-height:1.9;white-space:pre-wrap;text-align:right;margin-bottom:11px}.sig-sec{border-top:1px solid #DDD;padding-top:11px;margin-top:8px}.ftr{background:#0E0E0E;color:#B8963E;padding:8px 20px;font-size:9pt;text-align:center;margin-top:auto}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="page"><div class="hdr"><div style="display:flex;align-items:center;gap:10px"><img src="${LOGO_DARK}" style="height:40px;width:auto;mix-blend-mode:screen;filter:brightness(1.5)"><div><div class="ht">Kings Jerusalem</div><div class="hs">LUXURY REAL ESTATE</div></div></div><div class="hc">קינג ג׳ורג׳ 52, ירושלים<br>02-9998228</div></div><div class="gold"></div><div class="body"><div class="title">🤝 הסכם שיתוף פעולה בין מתווכים</div><div class="date">תאריך: '
+  return '<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><style>@page{size:A4;margin:0}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:10pt;color:#222;direction:rtl;width:210mm;min-height:297mm}.page{width:210mm;min-height:297mm;display:flex;flex-direction:column}.hdr{background:#0E0E0E;padding:11px 20px;display:flex;justify-content:space-between;align-items:center}.ht{color:#B8963E;font-size:14pt;font-weight:bold}.hs{font-size:9pt;color:#AAA;margin-top:2px}.hc{font-size:9pt;color:#888;text-align:left}.gold{height:2px;background:#B8963E}.body{padding:15px 20px;flex:1}.title{text-align:center;font-size:12pt;font-weight:bold;color:#4A1060;margin:10px 0 3px}.date{text-align:center;font-size:9pt;color:#888;margin-bottom:11px}.info{background:#F3E5F5;border:1px solid #CE93D8;border-radius:5px;padding:9px 13px;margin-bottom:12px;font-size:9pt;line-height:1.8}.info strong{color:#4A1060}.off{background:#1A1A1A;color:#CCC;border-radius:5px;padding:7px 13px;margin-bottom:12px;font-size:9pt;line-height:1.7}.off strong{color:#B8963E}.ct{font-size:11.5pt;line-height:1.7;white-space:pre-wrap;text-align:right;margin-bottom:10px}.sig-sec{border-top:1px solid #DDD;padding-top:11px;margin-top:8px}.ftr{background:#0E0E0E;color:#B8963E;padding:8px 20px;font-size:9pt;text-align:center;margin-top:auto}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="page"><div class="hdr"><div style="display:flex;align-items:center;gap:10px"><img src="'+LOGO_DARK+'" style="height:40px;width:auto;mix-blend-mode:screen;filter:brightness(1.5)"><div><div class="ht">Kings Jerusalem</div><div class="hs">LUXURY REAL ESTATE</div></div></div><div class="hc">קינג ג׳ורג׳ 52, ירושלים<br>02-9998228</div></div><div class="gold"></div><div class="body"><div class="title">🤝 הסכם שיתוף פעולה בין מתווכים</div><div class="date">תאריך: '
     +a.dateStr+'</div><div class="info"><strong>סוכן מציג:</strong> '+(a.collabAgent1||'')+(a.collabPhone1?' | '+a.collabPhone1:'')+'<br><strong>סוכן מביא:</strong> '+(a.collabAgent2||'')+(a.collabPhone2?' | '+a.collabPhone2:'')+'<br><strong>נכס:</strong> '+a.addr+(a.collabPrice?' | ₪'+a.collabPrice:'')+'<br>'+(a.clientName&&a.clientName!==a.collabAgent1+' + '+a.collabAgent2?'<strong>לקוח:</strong> '+a.clientName+(a.clientPhone?' | '+a.clientPhone:'')+'<br>':'')+'<strong>מגיש ההסכם:</strong> '+a.agent+'</div><div class="off"><strong>בעל המשרד:</strong> זכריה דיין — Kings Jerusalem &nbsp;|&nbsp; <strong>ת.ז.:</strong> 68532365 &nbsp;|&nbsp; <strong>רישיון:</strong> 3142656</div><div class="ct">'+body.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div><div class="sig-sec"><div style="font-size:9pt;color:#555;margin-bottom:4px;font-weight:500">חתימת הצדדים:</div>'+sigImg+'<div style="font-size:9pt;color:#AAA;text-align:center;margin-top:9px">נחתם דיגיטלית '+a.dateStr+' דרך מערכת Kings Jerusalem Luxury Real Estate</div></div></div><div class="ftr">Kings Jerusalem Luxury Real Estate • קינג ג׳ורג׳ 52, ירושלים • 02-9998228</div></div></body></html>';
 }
 
