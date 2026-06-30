@@ -853,12 +853,14 @@ async function syncToSupabase(agreement, retryCount=0){
       type_name: agreement.typeName,
       agent: agreement.agent,
       agent_en: agreement.agentEn||'',
+      agent_id: agreement.agentId||'',
       agent_phone: agreement.agentPhone||'',
       agent_license: agreement.agentLicense||'',
       client_name: agreement.clientName,
       client_id: agreement.clientId||'',
       client_phone: agreement.clientPhone,
       addr: agreement.addr,
+      prop_price: agreement.propPrice||'',
       sale_fee: agreement.saleFee||'',
       rent_fee: agreement.rentFee||'',
       vat_sale: agreement.vatSale||false,
@@ -868,6 +870,8 @@ async function syncToSupabase(agreement, retryCount=0){
       excl: agreement.excl||false,
       excl_from: agreement.exclFrom||'',
       excl_to: agreement.exclTo||'',
+      excl_contract_text: agreement.exclContractText||'',
+      custom_text: agreement.customText||'',
       signature: agreement.sig||'',
       date_str: agreement.dateStr,
       pending_sign: agreement.pendingSign||false,
@@ -907,14 +911,14 @@ async function syncToSupabase(agreement, retryCount=0){
 async function syncQToSupabase(q){
   try {
     await supaFetch('questionnaires','POST',{
-      id: q.id,
+      id: String(q.id),
       owner_name: q.ownerName,
       addr: q.addr,
       agent: q.agent||'',
       answers: q.answers,
       signature: q.sig||'',
       date_str: q.dateStr,
-    });
+    }, true); // upsert
   } catch(e){ console.log('Supabase Q sync error:',e); }
 }
 
@@ -1466,7 +1470,7 @@ async function showMyAgreements(){
   document.getElementById('my-ag-list').innerHTML='<div class="empty">⏳ טוען הסכמים...</div>';
   showScreen('screen-my-ag');
 
-  // Sync from Supabase
+  // Sync agreements from Supabase
   try{
     const res=await fetch(`${SUPA_URL}/rest/v1/agreements?agent=eq.${encodeURIComponent(agent.name)}&order=created_at.desc&limit=200`,{
       headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
@@ -1477,11 +1481,12 @@ async function showMyAgreements(){
         const idx=agreements.findIndex(a=>String(a.id)===String(r.id));
         const mapped={
           id:r.id,type:r.type,typeName:r.type_name,
-          agent:r.agent,agentPhone:r.agent_phone||'',agentLicense:r.agent_license||'',
+          agent:r.agent,agentEn:r.agent_en||'',agentId:r.agent_id||'',agentPhone:r.agent_phone||'',agentLicense:r.agent_license||'',
           clientName:r.client_name,clientId:r.client_id||'',clientPhone:r.client_phone,
-          addr:r.addr,saleFee:r.sale_fee,rentFee:r.rent_fee,
+          addr:r.addr,propPrice:r.prop_price||'',saleFee:r.sale_fee,rentFee:r.rent_fee,
           vatSale:r.vat_sale,vatRent:r.vat_rent,notes:r.notes||'',
           lang:r.lang||'he',excl:r.excl||false,exclFrom:r.excl_from||'',exclTo:r.excl_to||'',
+          exclContractText:r.excl_contract_text||'',customText:r.custom_text||'',
           sig:r.signature||'',date:r.created_at,dateStr:r.date_str,
           pendingSign:r.pending_sign||false,
         };
@@ -1494,20 +1499,62 @@ async function showMyAgreements(){
     }
   }catch(e){console.log('sync err',e);}
 
-  // Also show locally saved agreements (fallback if Supabase is slow)
-  const myAgs=agreements.filter(a=>a.agent===agent.name).slice().reverse();
+  // Sync questionnaires from Supabase too
+  try{
+    const qres=await fetch(`${SUPA_URL}/rest/v1/questionnaires?agent=eq.${encodeURIComponent(agent.name)}&order=created_at.desc&limit=200`,{
+      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
+    });
+    const qrows=await qres.json();
+    if(qrows&&!qrows.error&&qrows.length){
+      qrows.forEach(r=>{
+        const idx=questDB.findIndex(q=>String(q.id)===String(r.id));
+        const mapped={
+          id:r.id,ownerName:r.owner_name,addr:r.addr,agent:r.agent,
+          answers:r.answers||[],sig:r.signature||'',date:r.created_at,dateStr:r.date_str,
+        };
+        if(idx>=0) questDB[idx]=mapped;
+        else questDB.push(mapped);
+      });
+      save();
+    }
+  }catch(e){console.log('quest sync err',e);}
+
+  // Combine agreements + questionnaires into one unified list (newest first)
+  const myAgs=agreements.filter(a=>a.agent===agent.name).map(a=>({...a,_kind:'agreement'}));
+  const myQs=questDB.filter(q=>q.agent===agent.name).map(q=>({...q,_kind:'questionnaire'}));
+  const combined=[...myAgs,...myQs].sort((x,y)=>new Date(y.date||0)-new Date(x.date||0));
+
   const today=new Date().toLocaleDateString('he-IL');
   document.getElementById('my-ag-stats').innerHTML=`<div class="stats-row">
-    <div class="stat-card"><div class="stat-num">${myAgs.length}</div><div class="stat-lbl">סה"כ</div></div>
-    <div class="stat-card"><div class="stat-num">${myAgs.filter(a=>a.dateStr===today).length}</div><div class="stat-lbl">היום</div></div>
+    <div class="stat-card"><div class="stat-num">${combined.length}</div><div class="stat-lbl">סה"כ</div></div>
+    <div class="stat-card"><div class="stat-num">${combined.filter(a=>a.dateStr===today).length}</div><div class="stat-lbl">היום</div></div>
     <div class="stat-card"><div class="stat-num">${myAgs.filter(a=>a.sig).length}</div><div class="stat-lbl">חתומים</div></div>
   </div>`;
 
-  if(!myAgs.length){
+  if(!combined.length){
     document.getElementById('my-ag-list').innerHTML='<div class="empty">אין הסכמים עדיין</div>';
     return;
   }
-  document.getElementById('my-ag-list').innerHTML=myAgs.map(a=>{
+  document.getElementById('my-ag-list').innerHTML=combined.map(a=>{
+    if(a._kind==='questionnaire'){
+      return`<div class="lcard">
+        <div class="lrow" onclick="dlQPDF(${JSON.stringify(a).replace(/"/g,'&quot;')})">
+          <div style="flex:1">
+            <h4>${a.ownerName}</h4>
+            <p>📍 ${a.addr}</p>
+            <p style="font-size:10px;color:var(--gray)">שאלון גילוי נאות</p>
+            <p style="font-size:10px;color:#2E7D32;font-weight:600">✅ נחתם</p>
+          </div>
+          <div class="lmeta">
+            <span class="tbadge" style="background:#FFF3C4;color:#7A5C00">📝 שאלון</span>
+            <span style="font-size:11px;color:var(--gray)">${a.dateStr}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button class="btn-send-link" style="flex:1" onclick='dlQPDF(${JSON.stringify(a)})'>📄 צפה / הורד PDF</button>
+        </div>
+      </div>`;
+    }
     const[cls,lbl]=TBADGES[a.type]||['t-sale','?'];
     const signed=a.sig?'✅ נחתם':'⏳ ממתין לחתימה';
     const signedColor=a.sig?'#2E7D32':'#E65100';
@@ -1518,7 +1565,7 @@ async function showMyAgreements(){
           <p>📍 ${a.addr}</p>
           <p style="font-size:10px;color:var(--gray)">${a.typeName||''}</p>
           <p style="font-size:10px;color:${signedColor};font-weight:600">${signed}</p>
-          ${a.excl?'<p style="font-size:10px;color:#6A1B9A;font-weight:600">✦ בלעדיות</p>':''}
+          ${a.excl?'<p style="font-size:10px;color:#6A1B9A;font-weight:600">✦ בלעדיות (2 עמודים)</p>':''}
         </div>
         <div class="lmeta">
           <span class="tbadge ${cls}">${lbl}</span>
@@ -1848,17 +1895,17 @@ function buildExclPDFHtml(a){
   body{font-family:'Arial',sans-serif;font-size:10pt;color:#222;direction:rtl;width:210mm;min-height:297mm}
   .page{width:210mm;min-height:297mm;display:flex;flex-direction:column}
   .hdr{background:#0E0E0E;padding:10px 20px;display:flex;justify-content:space-between;align-items:center}
-  .hdr-logo{height:50px;width:auto}.hdr-contact{font-size:8pt;color:#888;text-align:left}
+  .hdr-logo{height:50px;width:auto}.hdr-contact{font-size:9pt;color:#888;text-align:left}
   .gold-line{height:2px;background:#B8963E}
   .body{padding:16px 20px;flex:1}
   .doc-title{text-align:center;font-size:13pt;font-weight:bold;color:#6A1B9A;margin:10px 0 4px}
   .doc-date{text-align:center;font-size:9pt;color:#888;margin-bottom:12px}
   .info-box{background:#F5EDD8;border:1px solid #B8963E;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:9pt;line-height:1.8}
   .info-box strong{color:#7A5010}
-  .office-box{background:#1A1A1A;color:#CCC;border-radius:6px;padding:8px 14px;margin-bottom:14px;font-size:8pt;line-height:1.7}
+  .office-box{background:#1A1A1A;color:#CCC;border-radius:6px;padding:8px 14px;margin-bottom:14px;font-size:9pt;line-height:1.7}
   .office-box strong{color:#B8963E}
   .contract-body{font-size:9.5pt;line-height:1.9;white-space:pre-wrap;text-align:right;margin-bottom:12px}
-  .ftr{background:#0E0E0E;color:#B8963E;padding:8px 20px;font-size:7.5pt;text-align:center;margin-top:auto}
+  .ftr{background:#0E0E0E;color:#B8963E;padding:8px 20px;font-size:9pt;text-align:center;margin-top:auto}
   .dual-note{background:#F3E5F5;border:1px solid rgba(106,27,154,0.3);border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:9pt;color:#6A1B9A}
   @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style></head><body>
@@ -1887,7 +1934,7 @@ function buildExclPDFHtml(a){
     <div class="dual-note">⚠️ הסכם זה מהווה חלק בלתי נפרד מהסכם התיווך. החתימה נוגעת לשני המסמכים כאחד.</div>
     <div class="contract-body">${body.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
     ${sigSection}
-    <div style="font-size:7.5pt;color:#AAA;text-align:center;margin-top:10px">נחתם דיגיטלית ${a.dateStr} דרך מערכת Kings Jerusalem</div>
+    <div style="font-size:9pt;color:#AAA;text-align:center;margin-top:10px">נחתם דיגיטלית ${a.dateStr} דרך מערכת Kings Jerusalem</div>
   </div>
   <div class="ftr">Kings Jerusalem Luxury Real Estate &nbsp;•&nbsp; קינג ג׳ורג׳ 52, ירושלים &nbsp;•&nbsp; 02-9998228</div>
 </div>
@@ -1969,10 +2016,12 @@ async function checkRemoteSign(){
         if(r.signature){
           // Save for potential download
           window._clientSignedAg={id:r.id,type:r.type,typeName:r.type_name,
-            agent:r.agent,clientName:r.client_name,clientId:r.client_id||'',clientPhone:r.client_phone,
-            addr:r.addr,saleFee:r.sale_fee,rentFee:r.rent_fee,vatSale:r.vat_sale,vatRent:r.vat_rent,
+            agent:r.agent,agentEn:r.agent_en||'',agentId:r.agent_id||'',agentLicense:r.agent_license||'',
+            clientName:r.client_name,clientId:r.client_id||'',clientPhone:r.client_phone,
+            addr:r.addr,propPrice:r.prop_price||'',saleFee:r.sale_fee,rentFee:r.rent_fee,vatSale:r.vat_sale,vatRent:r.vat_rent,
             notes:r.notes||'',lang:r.lang||'he',excl:r.excl,exclFrom:r.excl_from||'',exclTo:r.excl_to||'',
-            sig:r.signature,dateStr:r.date_str,propPrice:''};
+            exclContractText:r.excl_contract_text||'',customText:r.custom_text||'',
+            sig:r.signature,dateStr:r.date_str};
           const nm=r.client_name||'';
           document.getElementById('screen-remote').innerHTML=`
             <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px;text-align:center;background:#F7F5F0">
@@ -1989,10 +2038,11 @@ async function checkRemoteSign(){
         const data={
           id:r.id, type:r.type, typeName:r.type_name,
           clientName:r.client_name, clientId:r.client_id, clientPhone:r.client_phone,
-          addr:r.addr, saleFee:r.sale_fee, rentFee:r.rent_fee,
+          addr:r.addr, propPrice:r.prop_price||'', saleFee:r.sale_fee, rentFee:r.rent_fee,
           vatSale:r.vat_sale, vatRent:r.vat_rent, notes:r.notes,
           lang:r.lang||'he', excl:r.excl, exclFrom:r.excl_from, exclTo:r.excl_to,
-          agent:r.agent, dateStr:r.date_str,
+          exclContractText:r.excl_contract_text||'', customText:r.custom_text||'',
+          agent:r.agent, agentEn:r.agent_en||'', dateStr:r.date_str,
         };
         loadRemoteSign(data);
       } else {
@@ -2101,11 +2151,12 @@ async function submitRemote(){
     // Add to local if not exists (different device)
     agreements.push({
       id:data.id, type:data.type, typeName:data.typeName,
-      agent:data.agent, agentPhone:'', agentLicense:'',
+      agent:data.agent, agentEn:data.agentEn||'', agentPhone:'', agentLicense:'',
       clientName:name, clientId:id, clientPhone:phone,
-      addr:data.addr, saleFee:data.saleFee, rentFee:data.rentFee,
+      addr:data.addr, propPrice:data.propPrice||'', saleFee:data.saleFee, rentFee:data.rentFee,
       vatSale:data.vatSale, vatRent:data.vatRent, notes:data.notes||'',
       lang:data.lang||'he', excl:data.excl, exclFrom:data.exclFrom||'', exclTo:data.exclTo||'',
+      exclContractText:data.exclContractText||'', customText:data.customText||'',
       sig, date:new Date().toISOString(), dateStr:new Date().toLocaleDateString('he-IL'),
       pendingSign:false,
     });
@@ -2119,22 +2170,18 @@ async function submitRemote(){
   save();
 
   // Show success
-  // Build a minimal agreement object for PDF generation
+  // Build agreement object for PDF generation using ALL data fetched from Supabase
+  // (includes exclContractText and customText, which now sync correctly across devices)
   const clientAg = {
     id:data.id, type:data.type, typeName:data.typeName,
-    agent:data.agent, agentPhone:'', agentLicense:'',
+    agent:data.agent, agentEn:data.agentEn||'', agentPhone:'', agentLicense:'',
     clientName:name, clientId:id, clientPhone:phone,
-    addr:data.addr, saleFee:data.saleFee, rentFee:data.rentFee,
+    addr:data.addr, propPrice:data.propPrice||'', saleFee:data.saleFee, rentFee:data.rentFee,
     vatSale:data.vatSale, vatRent:data.vatRent, notes:data.notes||'',
     lang:data.lang||'he', excl:data.excl, exclFrom:data.exclFrom||'', exclTo:data.exclTo||'',
+    exclContractText:data.exclContractText||'', customText:data.customText||'',
     sig, dateStr:new Date().toLocaleDateString('he-IL'),
   };
-  // Try to find excl contract from local storage
-  const localAg = agreements.find(x=>String(x.id)===String(data.id));
-  clientAg.exclContractText = localAg?.exclContractText || null;
-  clientAg.excl = data.excl;
-  clientAg.exclFrom = data.exclFrom||'';
-  clientAg.exclTo = data.exclTo||'';
   window._clientSignedAg = clientAg;
 
   document.getElementById('screen-remote').innerHTML=`
@@ -2331,28 +2378,28 @@ function buildPDFHtml(a){
     ? `<strong>Rental Commission:</strong> ${a.rentFee} month${a.vatRent?' (VAT incl.)':' + VAT'}`
     : `<strong>עמלת שכ"ד:</strong> ${a.rentFee} חודש${a.vatRent?' (כולל מע"מ)':' + מע"מ'}`);
   const sigImg=a.sig?`<img src="${a.sig}" style="max-width:200px;max-height:65px;display:block;margin-top:8px">`:'<div style="height:65px;border-bottom:1px solid #999;width:220px;margin-top:30px"></div>';
-  const dualNote=a.excl&&a.exclContractText?`<div style="background:#F3E5F5;border:1px solid rgba(106,27,154,0.3);border-radius:5px;padding:7px 12px;margin-bottom:10px;font-size:8.5pt;color:#6A1B9A">⚠️ ${en?'This signature applies to both documents — the brokerage agreement and the exclusivity agreement.':'החתימה הינה נוגעת לשני המסמכים — הסכם התיווך והסכם הבלעדיות כאחד.'}</div>`:'';;
+  const dualNote=a.excl&&a.exclContractText?`<div style="background:#F3E5F5;border:1px solid rgba(106,27,154,0.3);border-radius:5px;padding:8px 12px;margin-bottom:10px;font-size:9.5pt;color:#6A1B9A">⚠️ ${en?'This signature applies to both documents — the brokerage agreement and the exclusivity agreement.':'החתימה הינה נוגעת לשני המסמכים — הסכם התיווך והסכם הבלעדיות כאחד.'}</div>`:'';;
   const styles=`<style>
   @page{size:A4;margin:0}*{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Arial','David','Helvetica',sans-serif;font-size:10pt;color:#222;direction:${dir};width:210mm;min-height:297mm}
   .page{width:210mm;min-height:297mm;display:flex;flex-direction:column;page-break-after:always}
   .page:last-child{page-break-after:auto}
   .hdr{background:#0E0E0E;padding:11px 20px;display:flex;justify-content:space-between;align-items:center}
-  .ht{color:#B8963E;font-size:14pt;font-weight:bold}.hs{font-size:8pt;color:#AAA;margin-top:2px}
-  .hc{font-size:8pt;color:#888;text-align:${en?'right':'left'}}
+  .ht{color:#B8963E;font-size:14pt;font-weight:bold}.hs{font-size:9pt;color:#AAA;margin-top:2px}
+  .hc{font-size:9pt;color:#888;text-align:${en?'right':'left'}}
   .gold{height:2px;background:#B8963E}
   .body{padding:15px 20px;flex:1}
   .title{text-align:center;font-size:12pt;font-weight:bold;color:#333;margin:10px 0 3px}
   .date{text-align:center;font-size:9pt;color:#888;margin-bottom:11px}
-  .info{background:#F5EDD8;border:1px solid #B8963E;border-radius:5px;padding:7px 11px;margin-bottom:8px;font-size:8.5pt;line-height:1.6}
+  .info{background:#F5EDD8;border:1px solid #B8963E;border-radius:5px;padding:8px 12px;margin-bottom:9px;font-size:9.5pt;line-height:1.65}
   .info strong{color:#7A5010}
-  .off{background:#1A1A1A;color:#CCC;border-radius:5px;padding:5px 11px;margin-bottom:8px;font-size:7.5pt;line-height:1.5}
+  .off{background:#1A1A1A;color:#CCC;border-radius:5px;padding:6px 12px;margin-bottom:9px;font-size:9pt;line-height:1.55}
   .off strong{color:#B8963E}
-  .ct{font-size:8.5pt;line-height:1.5;white-space:pre-wrap;text-align:${align};margin-bottom:8px}
+  .ct{font-size:10pt;line-height:1.6;white-space:pre-wrap;text-align:${align};margin-bottom:9px}
   .sig-sec{border-top:1px solid #DDD;padding-top:11px;margin-top:8px}
   .sig-lbl{font-size:9pt;color:#555;margin-bottom:4px;font-weight:500}
-  .stamp{font-size:7pt;color:#AAA;text-align:center;margin-top:9px}
-  .ftr{background:#0E0E0E;color:#B8963E;padding:8px 20px;font-size:7pt;text-align:center;margin-top:auto}
+  .stamp{font-size:9pt;color:#AAA;text-align:center;margin-top:9px}
+  .ftr{background:#0E0E0E;color:#B8963E;padding:8px 20px;font-size:9pt;text-align:center;margin-top:auto}
   @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style>`;
   return`<!DOCTYPE html><html dir="${dir}"><head><meta charset="UTF-8">${styles}</head><body>
@@ -2492,8 +2539,8 @@ function dlQPDF(q){
   body{font-family:'Arial','David','Helvetica',sans-serif;font-size:10pt;color:#222;direction:rtl;width:210mm;min-height:297mm}
   .page{width:210mm;min-height:297mm;display:flex;flex-direction:column}
   .hdr{background:#0E0E0E;color:#B8963E;padding:12px 20px;display:flex;justify-content:space-between;align-items:center}
-  .hdr-title{font-size:15pt;font-weight:bold}.hdr-sub{font-size:8pt;color:#AAA;margin-top:2px}
-  .hdr-contact{font-size:8pt;color:#888;text-align:left}
+  .hdr-title{font-size:15pt;font-weight:bold}.hdr-sub{font-size:9pt;color:#AAA;margin-top:2px}
+  .hdr-contact{font-size:9pt;color:#888;text-align:left}
   .gold-line{height:2px;background:#B8963E}
   .body{padding:16px 20px;flex:1}
   .doc-title{text-align:center;font-size:13pt;font-weight:bold;color:#333;margin:10px 0 4px}
@@ -2506,9 +2553,9 @@ function dlQPDF(q){
   .q-answer{font-size:9pt;color:#555;padding:6px 10px;background:#FAFAFA;border-radius:4px;line-height:1.6}
   .sig-section{border-top:1px solid #DDD;padding-top:12px;margin-top:8px}
   .sig-label{font-size:9pt;color:#666;margin-bottom:4px}
-  .sig-stamp{font-size:7.5pt;color:#AAA;text-align:center;margin-top:10px}
-  .ftr{background:#0E0E0E;color:#B8963E;padding:8px 20px;font-size:7.5pt;text-align:center;margin-top:auto}
-  .office-box{background:#1A1A1A;color:#CCC;border-radius:6px;padding:8px 14px;margin-bottom:14px;font-size:8.5pt;line-height:1.7}
+  .sig-stamp{font-size:9pt;color:#AAA;text-align:center;margin-top:10px}
+  .ftr{background:#0E0E0E;color:#B8963E;padding:8px 20px;font-size:9pt;text-align:center;margin-top:auto}
+  .office-box{background:#1A1A1A;color:#CCC;border-radius:6px;padding:8px 14px;margin-bottom:14px;font-size:9pt;line-height:1.7}
   .office-box strong{color:#B8963E}
   @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style></head><body>
@@ -3246,8 +3293,8 @@ function buildCollabPDFHtml(a){
   const body=a.customText||collabContractText({agent1:a.collabAgent1||'',phone1:a.collabPhone1||'',agent2:a.collabAgent2||'',phone2:a.collabPhone2||'',addr:a.addr,price:a.collabPrice||'',saleFee:a.saleFee,rentFee:a.rentFee,clientName:a.clientName||'',clientPhone:a.clientPhone||'',notes:a.notes||''});
   const sigImg=a.sig?'<img src="'+a.sig+'" style="max-width:200px;max-height:65px;display:block;margin-top:8px">'
     :'<div style="height:65px;border-bottom:1px solid #999;width:220px;margin-top:30px"></div>';
-  return '<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><style>@page{size:A4;margin:0}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:10pt;color:#222;direction:rtl;width:210mm;min-height:297mm}.page{width:210mm;min-height:297mm;display:flex;flex-direction:column}.hdr{background:#0E0E0E;padding:11px 20px;display:flex;justify-content:space-between;align-items:center}.ht{color:#B8963E;font-size:14pt;font-weight:bold}.hs{font-size:8pt;color:#AAA;margin-top:2px}.hc{font-size:8pt;color:#888;text-align:left}.gold{height:2px;background:#B8963E}.body{padding:15px 20px;flex:1}.title{text-align:center;font-size:12pt;font-weight:bold;color:#4A1060;margin:10px 0 3px}.date{text-align:center;font-size:9pt;color:#888;margin-bottom:11px}.info{background:#F3E5F5;border:1px solid #CE93D8;border-radius:5px;padding:9px 13px;margin-bottom:12px;font-size:9pt;line-height:1.8}.info strong{color:#4A1060}.off{background:#1A1A1A;color:#CCC;border-radius:5px;padding:7px 13px;margin-bottom:12px;font-size:8pt;line-height:1.7}.off strong{color:#B8963E}.ct{font-size:9.5pt;line-height:1.9;white-space:pre-wrap;text-align:right;margin-bottom:11px}.sig-sec{border-top:1px solid #DDD;padding-top:11px;margin-top:8px}.ftr{background:#0E0E0E;color:#B8963E;padding:8px 20px;font-size:7pt;text-align:center;margin-top:auto}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="page"><div class="hdr"><div style="display:flex;align-items:center;gap:10px"><img src="${LOGO_DARK}" style="height:40px;width:auto;mix-blend-mode:screen;filter:brightness(1.5)"><div><div class="ht">Kings Jerusalem</div><div class="hs">LUXURY REAL ESTATE</div></div></div><div class="hc">קינג ג׳ורג׳ 52, ירושלים<br>02-9998228</div></div><div class="gold"></div><div class="body"><div class="title">🤝 הסכם שיתוף פעולה בין מתווכים</div><div class="date">תאריך: '
-    +a.dateStr+'</div><div class="info"><strong>סוכן מציג:</strong> '+(a.collabAgent1||'')+(a.collabPhone1?' | '+a.collabPhone1:'')+'<br><strong>סוכן מביא:</strong> '+(a.collabAgent2||'')+(a.collabPhone2?' | '+a.collabPhone2:'')+'<br><strong>נכס:</strong> '+a.addr+(a.collabPrice?' | ₪'+a.collabPrice:'')+'<br>'+(a.clientName&&a.clientName!==a.collabAgent1+' + '+a.collabAgent2?'<strong>לקוח:</strong> '+a.clientName+(a.clientPhone?' | '+a.clientPhone:'')+'<br>':'')+'<strong>מגיש ההסכם:</strong> '+a.agent+'</div><div class="off"><strong>בעל המשרד:</strong> זכריה דיין — Kings Jerusalem &nbsp;|&nbsp; <strong>ת.ז.:</strong> 68532365 &nbsp;|&nbsp; <strong>רישיון:</strong> 3142656</div><div class="ct">'+body.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div><div class="sig-sec"><div style="font-size:9pt;color:#555;margin-bottom:4px;font-weight:500">חתימת הצדדים:</div>'+sigImg+'<div style="font-size:7pt;color:#AAA;text-align:center;margin-top:9px">נחתם דיגיטלית '+a.dateStr+' דרך מערכת Kings Jerusalem Luxury Real Estate</div></div></div><div class="ftr">Kings Jerusalem Luxury Real Estate • קינג ג׳ורג׳ 52, ירושלים • 02-9998228</div></div></body></html>';
+  return '<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><style>@page{size:A4;margin:0}*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;font-size:10pt;color:#222;direction:rtl;width:210mm;min-height:297mm}.page{width:210mm;min-height:297mm;display:flex;flex-direction:column}.hdr{background:#0E0E0E;padding:11px 20px;display:flex;justify-content:space-between;align-items:center}.ht{color:#B8963E;font-size:14pt;font-weight:bold}.hs{font-size:9pt;color:#AAA;margin-top:2px}.hc{font-size:9pt;color:#888;text-align:left}.gold{height:2px;background:#B8963E}.body{padding:15px 20px;flex:1}.title{text-align:center;font-size:12pt;font-weight:bold;color:#4A1060;margin:10px 0 3px}.date{text-align:center;font-size:9pt;color:#888;margin-bottom:11px}.info{background:#F3E5F5;border:1px solid #CE93D8;border-radius:5px;padding:9px 13px;margin-bottom:12px;font-size:9pt;line-height:1.8}.info strong{color:#4A1060}.off{background:#1A1A1A;color:#CCC;border-radius:5px;padding:7px 13px;margin-bottom:12px;font-size:9pt;line-height:1.7}.off strong{color:#B8963E}.ct{font-size:9.5pt;line-height:1.9;white-space:pre-wrap;text-align:right;margin-bottom:11px}.sig-sec{border-top:1px solid #DDD;padding-top:11px;margin-top:8px}.ftr{background:#0E0E0E;color:#B8963E;padding:8px 20px;font-size:9pt;text-align:center;margin-top:auto}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="page"><div class="hdr"><div style="display:flex;align-items:center;gap:10px"><img src="${LOGO_DARK}" style="height:40px;width:auto;mix-blend-mode:screen;filter:brightness(1.5)"><div><div class="ht">Kings Jerusalem</div><div class="hs">LUXURY REAL ESTATE</div></div></div><div class="hc">קינג ג׳ורג׳ 52, ירושלים<br>02-9998228</div></div><div class="gold"></div><div class="body"><div class="title">🤝 הסכם שיתוף פעולה בין מתווכים</div><div class="date">תאריך: '
+    +a.dateStr+'</div><div class="info"><strong>סוכן מציג:</strong> '+(a.collabAgent1||'')+(a.collabPhone1?' | '+a.collabPhone1:'')+'<br><strong>סוכן מביא:</strong> '+(a.collabAgent2||'')+(a.collabPhone2?' | '+a.collabPhone2:'')+'<br><strong>נכס:</strong> '+a.addr+(a.collabPrice?' | ₪'+a.collabPrice:'')+'<br>'+(a.clientName&&a.clientName!==a.collabAgent1+' + '+a.collabAgent2?'<strong>לקוח:</strong> '+a.clientName+(a.clientPhone?' | '+a.clientPhone:'')+'<br>':'')+'<strong>מגיש ההסכם:</strong> '+a.agent+'</div><div class="off"><strong>בעל המשרד:</strong> זכריה דיין — Kings Jerusalem &nbsp;|&nbsp; <strong>ת.ז.:</strong> 68532365 &nbsp;|&nbsp; <strong>רישיון:</strong> 3142656</div><div class="ct">'+body.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div><div class="sig-sec"><div style="font-size:9pt;color:#555;margin-bottom:4px;font-weight:500">חתימת הצדדים:</div>'+sigImg+'<div style="font-size:9pt;color:#AAA;text-align:center;margin-top:9px">נחתם דיגיטלית '+a.dateStr+' דרך מערכת Kings Jerusalem Luxury Real Estate</div></div></div><div class="ftr">Kings Jerusalem Luxury Real Estate • קינג ג׳ורג׳ 52, ירושלים • 02-9998228</div></div></body></html>';
 }
 
 </script>
