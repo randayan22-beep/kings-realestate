@@ -2271,7 +2271,7 @@ async function submitAgreement(requireSig=true){
   }
   const a={
     id:Date.now(),type:formType,typeName:FNAMES[formType]['he'],
-    agent:agent.name,agentPhone:agent.phone,agentLicense:agent.license,
+    agent:agent.name,agentEn:agent.nameEn||agent.name,agentId:agent.id||'',agentPhone:agent.phone,agentLicense:agent.license,
     clientName:d.name,clientId:d.id,clientPhone:d.phone,
     addr:d.addr,saleFee:d.saleFee,rentFee:d.rentFee,
     vatSale:d.vatSale,vatRent:d.vatRent,notes:d.notes,
