@@ -292,8 +292,20 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
           <div class="tog" id="fp-excl-tog"></div>
         </div>
         <div class="excl-dates" id="fp-excl-dates">
-          <div class="fgroup"><label class="flabel">מתאריך</label><input class="finput" id="fp-excl-from" type="date"></div>
-          <div class="fgroup"><label class="flabel">עד תאריך</label><input class="finput" id="fp-excl-to" type="date"></div>
+          <div class="fgroup"><label class="flabel">מתאריך</label><input class="finput" id="fp-excl-from" type="date" onchange="recalcExclEnd('fp')"></div>
+          <div class="fgroup">
+            <label class="flabel">משך הבלעדיות</label>
+            <select class="finput" id="fp-excl-duration" onchange="recalcExclEnd('fp')">
+              <option value="1">חודש אחד</option>
+              <option value="2">חודשיים</option>
+              <option value="3">3 חודשים</option>
+              <option value="4">4 חודשים</option>
+              <option value="5">5 חודשים</option>
+              <option value="6" selected>6 חודשים</option>
+              <option value="custom">מותאם אישית (תאריך ידני)</option>
+            </select>
+          </div>
+          <div class="fgroup" id="fp-excl-to-wrap"><label class="flabel">עד תאריך</label><input class="finput" id="fp-excl-to" type="date" readonly></div>
         </div>
       </div>
     </div>
@@ -323,8 +335,20 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
         <div class="tog" id="excl-tog"></div>
       </div>
       <div class="excl-dates" id="excl-dates">
-        <div class="fgroup"><label class="flabel">מתאריך</label><input class="finput" id="f-excl-from" type="date"></div>
-        <div class="fgroup"><label class="flabel">עד תאריך</label><input class="finput" id="f-excl-to" type="date"></div>
+        <div class="fgroup"><label class="flabel">מתאריך</label><input class="finput" id="f-excl-from" type="date" onchange="recalcExclEnd('f')"></div>
+        <div class="fgroup">
+          <label class="flabel">משך הבלעדיות</label>
+          <select class="finput" id="f-excl-duration" onchange="recalcExclEnd('f')">
+            <option value="1">חודש אחד</option>
+            <option value="2">חודשיים</option>
+            <option value="3">3 חודשים</option>
+            <option value="4">4 חודשים</option>
+            <option value="5">5 חודשים</option>
+            <option value="6" selected>6 חודשים</option>
+            <option value="custom">מותאם אישית (תאריך ידני)</option>
+          </select>
+        </div>
+        <div class="fgroup" id="f-excl-to-wrap"><label class="flabel">עד תאריך</label><input class="finput" id="f-excl-to" type="date" readonly></div>
       </div>
     </div>
     <!-- Notes -->
@@ -547,8 +571,20 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
         <div class="tog" id="ap-excl-tog"></div>
       </div>
       <div class="excl-dates" id="ap-excl-dates">
-        <div class="fgroup"><label class="flabel">מתאריך</label><input class="finput" id="ap-excl-from" type="date"></div>
-        <div class="fgroup"><label class="flabel">עד תאריך</label><input class="finput" id="ap-excl-to" type="date"></div>
+        <div class="fgroup"><label class="flabel">מתאריך</label><input class="finput" id="ap-excl-from" type="date" onchange="recalcExclEnd('ap')"></div>
+        <div class="fgroup">
+          <label class="flabel">משך הבלעדיות</label>
+          <select class="finput" id="ap-excl-duration" onchange="recalcExclEnd('ap')">
+            <option value="1">חודש אחד</option>
+            <option value="2">חודשיים</option>
+            <option value="3">3 חודשים</option>
+            <option value="4">4 חודשים</option>
+            <option value="5">5 חודשים</option>
+            <option value="6" selected>6 חודשים</option>
+            <option value="custom">מותאם אישית (תאריך ידני)</option>
+          </select>
+        </div>
+        <div class="fgroup" id="ap-excl-to-wrap"><label class="flabel">עד תאריך</label><input class="finput" id="ap-excl-to" type="date" readonly></div>
       </div>
       <div style="display:flex;gap:8px;margin-top:4px">
         <button class="btn-modal-cancel" onclick="document.getElementById('add-prop-form').style.display='none'">ביטול</button>
@@ -575,8 +611,20 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
       <div class="tog" id="ep-excl-tog"></div>
     </div>
     <div class="excl-dates" id="ep-excl-dates">
-      <div class="fgroup"><label class="flabel">מתאריך</label><input class="finput" id="ep-excl-from" type="date"></div>
-      <div class="fgroup"><label class="flabel">עד תאריך</label><input class="finput" id="ep-excl-to" type="date"></div>
+      <div class="fgroup"><label class="flabel">מתאריך</label><input class="finput" id="ep-excl-from" type="date" onchange="recalcExclEnd('ep')"></div>
+      <div class="fgroup">
+        <label class="flabel">משך הבלעדיות</label>
+        <select class="finput" id="ep-excl-duration" onchange="recalcExclEnd('ep')">
+          <option value="1">חודש אחד</option>
+          <option value="2">חודשיים</option>
+          <option value="3">3 חודשים</option>
+          <option value="4">4 חודשים</option>
+          <option value="5">5 חודשים</option>
+          <option value="6" selected>6 חודשים</option>
+          <option value="custom">מותאם אישית (תאריך ידני)</option>
+        </select>
+      </div>
+      <div class="fgroup" id="ep-excl-to-wrap"><label class="flabel">עד תאריך</label><input class="finput" id="ep-excl-to" type="date" readonly></div>
     </div>
     <div class="modal-actions">
       <button class="btn-modal-cancel" onclick="document.getElementById('edit-prop-modal').classList.remove('open')">ביטול</button>
@@ -888,10 +936,13 @@ async function syncToSupabase(agreement, retryCount=0){
     if(ci) await supaFetch('clients','POST',{
       id: ci.id, name: ci.name, phone: ci.phone, seen: ci.seen
     }, true);
-    // sync property (upsert)
+    // sync property (upsert) — include ALL fields, not just addr/cnt/agents/seen,
+    // otherwise every agreement sync silently wipes price/size/notes/exclusivity
     const pi = propsDB.find(p=>p.addr===agreement.addr);
     if(pi) await supaFetch('properties','POST',{
-      addr: pi.addr, cnt: pi.cnt, agents: pi.agents, seen: pi.seen
+      addr: pi.addr, cnt: pi.cnt, agents: pi.agents, seen: pi.seen,
+      price: pi.price||'', size: pi.size||'', notes: pi.notes||'',
+      excl_on: pi.exclOn||false, excl_from: pi.exclFrom||'', excl_to: pi.exclTo||'',
     }, true);
   } catch(e){
     console.error('Supabase sync error:',e);
@@ -1157,12 +1208,57 @@ function loginMgr(){
 
 /* ══ NAVIGATION ══ */
 function showScreen(id){
+  const target = document.getElementById(id);
+  if(!target){
+    console.error('showScreen: no element with id', id, '— falling back to screen-dash');
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    const fallback = document.getElementById('screen-dash');
+    if(fallback) fallback.classList.add('active');
+    window.scrollTo(0,0);
+    return;
+  }
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  target.classList.add('active');
   window.scrollTo(0,0);
 }
 
 /* ══ AUTOCOMPLETE ══ */
+function recalcExclEnd(prefix){
+  const fromEl = document.getElementById(prefix+'-excl-from');
+  const durEl = document.getElementById(prefix+'-excl-duration');
+  const toEl = document.getElementById(prefix+'-excl-to');
+  const toWrap = document.getElementById(prefix+'-excl-to-wrap');
+  if(!fromEl || !durEl || !toEl) return;
+
+  if(durEl.value === 'custom'){
+    // Let the user pick the end date manually
+    toEl.readOnly = false;
+    if(toWrap){
+      const lbl = toWrap.querySelector('.flabel');
+      if(lbl) lbl.textContent = 'עד תאריך (ידני)';
+    }
+    return;
+  }
+
+  // Auto-calc: readonly, computed from start date + N months
+  toEl.readOnly = true;
+  if(toWrap){
+    const lbl = toWrap.querySelector('.flabel');
+    if(lbl) lbl.textContent = 'עד תאריך';
+  }
+  if(!fromEl.value) return; // wait until a start date is chosen
+  const months = parseInt(durEl.value, 10);
+  const start = new Date(fromEl.value);
+  if(isNaN(start.getTime())) return;
+  const end = new Date(start);
+  end.setMonth(end.getMonth() + months);
+  // Format as YYYY-MM-DD for <input type="date">
+  const yyyy = end.getFullYear();
+  const mm = String(end.getMonth()+1).padStart(2,'0');
+  const dd = String(end.getDate()).padStart(2,'0');
+  toEl.value = `${yyyy}-${mm}-${dd}`;
+}
+
 function acClient(val){
   const dd=document.getElementById('ac-clients');
   const q=val.trim().toLowerCase();
@@ -1748,6 +1844,13 @@ function openEditProp(addr){
   exclOn?dates.classList.add('open'):dates.classList.remove('open');
   document.getElementById('ep-excl-from').value=p?p.exclFrom||'':'';
   document.getElementById('ep-excl-to').value=p?p.exclTo||'':'';
+  // When re-editing an existing exclusivity period, treat it as "custom"
+  // so both dates stay exactly as they were (don't silently overwrite them).
+  const durEl = document.getElementById('ep-excl-duration');
+  if(durEl){
+    durEl.value = (p && p.exclFrom && p.exclTo) ? 'custom' : '6';
+    recalcExclEnd('ep');
+  }
   document.getElementById('edit-prop-modal').classList.add('open');
 }
 function savePropEdit(){
