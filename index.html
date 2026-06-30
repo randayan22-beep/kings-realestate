@@ -2256,11 +2256,13 @@ function clearSig(id,hintId){
 /* ══ SUBMIT ══ */
 async function submitAgreement(requireSig=true){
   if(requireSig && !sigDrawn){alert('נא לחתום לפני האישור');return;}
+  try{
   const sig=sigDrawn ? document.getElementById('sig-c').toDataURL('image/png') : '';
   const d=getFormData();
   // Use edited contract text if modified
   const editedText = document.getElementById('contract-text')?.value || contractText(formType,lang,d);
-  const editedExclText = exclOn && d.exclFrom ? (document.getElementById('excl-contract-text')?.value || exclAgreementText(d, agent?agent.name:'')) : null;
+  const hasExclData = exclOn && d.exclFrom && d.exclTo;
+  const editedExclText = hasExclData ? (document.getElementById('excl-contract-text')?.value || exclAgreementText(d, agent?agent.name:'')) : null;
   const now=new Date();
   // Save new property details if inline fields were shown
   const newPropFields=document.getElementById('new-prop-fields');
@@ -2321,6 +2323,10 @@ async function submitAgreement(requireSig=true){
   if(waBtn2){waBtn2.href=`https://wa.me/${ph}?text=${msg}`;waBtn2.style.opacity='1';waBtn2.style.pointerEvents='auto';}
   const okSub2=document.getElementById('ok-sub');
   if(okSub2) okSub2.innerHTML=`ההסכם עבור <strong>${d.name}</strong> נשמר ✅<br>נכס: ${d.addr}${!sig?'<br><span style="color:#E65100;font-size:11px">⏳ ממתין לחתימה</span>':''}`;
+  }catch(err){
+    console.error('submitAgreement crashed:', err);
+    alert('שגיאה בשמירת ההסכם: '+err.message+'\n\nנא לנסות שוב או לפנות לתמיכה.');
+  }
 }
 
 /* ══ QUESTIONNAIRE ══ */
@@ -2444,11 +2450,13 @@ function buildPDFHtml(a){
 </body></html>`;
 }
 
-function quickSendWA(){
+async function quickSendWA(){
   // Save agreement without signature, then open WhatsApp directly
   const d=getFormData();
   if(!d.name||!d.phone||!d.addr){alert('נא למלא שם, טלפון וכתובת');return;}
   const now=new Date();
+  const hasExclData = exclOn && d.exclFrom && d.exclTo;
+  const exclText = hasExclData ? (document.getElementById('excl-contract-text')?.value || exclAgreementText(d, agent?agent.name:'')) : null;
   const a={
     id:Date.now(),type:formType,typeName:FNAMES[formType]['he'],
     agent:agent.name,agentEn:agent.nameEn||agent.name,agentId:agent.id||'',agentPhone:agent.phone||'',agentLicense:agent.license||'',
@@ -2456,6 +2464,7 @@ function quickSendWA(){
     addr:d.addr,saleFee:d.saleFee,rentFee:d.rentFee,
     vatSale,vatRent,notes:d.notes,
     lang,excl:exclOn,exclFrom:d.exclFrom,exclTo:d.exclTo,
+    exclContractText:exclText,
     sig:'',date:now.toISOString(),dateStr:now.toLocaleDateString('he-IL'),
     pendingSign:true,
     customText:document.getElementById('contract-text')?.value||null,
@@ -2468,7 +2477,7 @@ function quickSendWA(){
   if(pi>=0){propsDB[pi].cnt++;propsDB[pi].seen=now.toISOString();}
   else propsDB.push({addr:d.addr,cnt:1,agents:[agent.name],seen:now.toISOString()});
   save();
-  syncToSupabase(a); // fire and forget
+  await syncToSupabase(a); // wait for save to complete before sending link
   // Open WhatsApp directly
   const link=makeSignLink(a);
   const ph=phoneToWA(d.phone);
