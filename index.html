@@ -138,6 +138,19 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
 .t-sale{background:#FFF3E0;color:#E65100}.t-rent{background:#E3F2FD;color:#1565C0}
 .t-buyer{background:#E8F5E9;color:#1B5E20}.t-excl{background:#F3E5F5;color:#6A1B9A}.t-collab{background:#EDE7F6;color:#4A1060}
 .cnt{background:var(--gold-pale);color:#7A5C1E;font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px}
+.st-badge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:12px;white-space:nowrap}
+.st-signed{background:#E8F5E9;color:#1B5E20}
+.st-pending{background:#FFF3E0;color:#E65100}
+.st-expired{background:#FFEBEE;color:#B71C1C}
+.btn-remind{background:#FFF8E1;border:1px solid #FFC107;border-radius:6px;padding:4px 8px;font-size:10px;color:#8A6D00;cursor:pointer;font-family:'Heebo',sans-serif;font-weight:600}
+.an-section{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+.an-title{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:8px}
+.an-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--gold-pale);font-size:12px}
+.an-row:last-child{border-bottom:none}
+.an-row .nm{color:var(--black);font-weight:500}
+.an-row .vl{color:var(--gray)}
+.an-bar{height:5px;background:var(--gold-pale);border-radius:3px;overflow:hidden;margin-top:4px}
+.an-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light))}
 .empty{text-align:center;padding:32px 16px;color:var(--gray);font-size:13px}
 .pbar-wrap{margin-top:5px}.pbar{height:5px;background:var(--gold-pale);border-radius:3px;overflow:hidden;margin-top:2px}
 .pbar-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light));border-radius:3px}
@@ -182,6 +195,7 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
 .q-ta{width:100%;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--black);background:var(--white);resize:vertical;min-height:60px;line-height:1.5;transition:border-color 0.2s}
 .q-ta:focus{outline:none;border-color:var(--gold)}
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 </head>
 <body>
 
@@ -335,7 +349,11 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
         <div class="tog" id="excl-tog"></div>
       </div>
       <div class="excl-dates" id="excl-dates">
-        <div class="fgroup"><label class="flabel">מתאריך</label><input class="finput" id="f-excl-from" type="date" onchange="recalcExclEnd('f')"></div>
+        <div class="excl-toggle" onclick="toggleCustomStart()" style="margin-bottom:10px">
+          <span class="excl-toggle-lbl" id="excl-start-lbl">תאריך התחלה: יום החתימה</span>
+          <div class="tog" id="excl-start-tog"></div>
+        </div>
+        <div class="fgroup" id="f-excl-from-wrap" style="display:none"><label class="flabel">תאריך התחלה מותאם</label><input class="finput" id="f-excl-from" type="date" onchange="recalcExclEnd('f')"></div>
         <div class="fgroup">
           <label class="flabel">משך הבלעדיות</label>
           <select class="finput" id="f-excl-duration" onchange="recalcExclEnd('f')">
@@ -389,7 +407,7 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
     <div class="fcard">
       <div class="fcard-title">פרטי הנכס</div>
       <div class="fgroup"><label class="flabel">כתובת הנכס *</label>
-        <div class="ac-wrap"><input class="finput" id="cb-addr" type="text" placeholder="רחוב, מספר, עיר" autocomplete="off" oninput="acAddrCollab(this.value)" onfocus="acAddrCollab(this.value)"><div class="ac-dropdown" id="ac-collab-addr"></div></div>
+        <div class="ac-wrap"><input class="finput" id="cb-addr" type="text" placeholder="רחוב, מספר, עיר" autocomplete="off" oninput="acAddrCollab(this.value)" onfocus="acAddrCollab(this.value)"><div class="ac-dd" id="ac-collab-addr"></div></div>
       </div>
       <div class="fgroup"><label class="flabel">מחיר / שכירות</label><input class="finput" id="cb-price" type="text" placeholder="₪ 0,000,000 (אופציונלי)"></div>
       <div class="fgroup"><label class="flabel">עמלת מכירה (% מכל צד)</label><input class="finput" id="cb-sale-fee" type="number" step="0.1" min="0" value="1"></div>
@@ -564,7 +582,11 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
       <div class="fgroup"><label class="flabel">כתובת *</label><input class="finput" id="ap-addr" type="text" placeholder="רחוב, מספר, עיר"></div>
       <div class="fgroup"><label class="flabel">מחיר *</label><input class="finput" id="ap-price" type="text" inputmode="numeric" placeholder="₪ 0,000,000"></div>
       <div class="fgroup"><label class="flabel">גודל במ״ר *</label><input class="finput" id="ap-size" type="number" placeholder="100"></div>
-      <div class="fgroup"><label class="flabel">הערות</label><input class="finput" id="ap-notes" type="text" placeholder="קומה, חדרים, מצב..."></div>
+      <div class="fgroup"><label class="flabel">חדרים</label><input class="finput" id="ap-rooms" type="text" inputmode="decimal" placeholder="4"></div>
+      <div class="fgroup"><label class="flabel">אזור / שכונה</label><input class="finput" id="ap-area" type="text" placeholder="רחביה, תל אביב מרכז..."></div>
+      <div class="fgroup"><label class="flabel">תיאור / הערות</label><textarea class="ftextarea" id="ap-notes" placeholder="קומה, מצב, מאפיינים..."></textarea>
+        <button type="button" onclick="fillPassage('ap')" class="btn-export" style="margin-top:6px">✨ צור תיאור אוטומטי</button>
+      </div>
       <!-- Exclusivity -->
       <div class="excl-toggle" onclick="togglePropExcl('ap')" style="margin-bottom:10px">
         <span class="excl-toggle-lbl">בלעדיות</span>
@@ -591,10 +613,39 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
         <button class="btn-modal-ok" onclick="addPropFromDB()">שמור</button>
       </div>
     </div>
-    <!-- Search -->
-    <div class="filter-row"><input class="fsel" type="text" id="prop-search" placeholder="חיפוש נכס..." oninput="renderPropDB()" style="flex:2"></div>
+    <!-- Search + sort + map -->
+    <div class="filter-row" style="flex-wrap:wrap">
+      <input class="fsel" type="text" id="prop-search" placeholder="חיפוש לפי כתובת / אזור..." oninput="renderPropDB()" style="flex:2;min-width:150px">
+      <select class="fsel" id="prop-sort" onchange="renderPropDB()">
+        <option value="recent">מיון: אחרונים</option>
+        <option value="price-desc">מחיר: גבוה → נמוך</option>
+        <option value="price-asc">מחיר: נמוך → גבוה</option>
+        <option value="rooms-desc">חדרים: הרבה → מעט</option>
+        <option value="rooms-asc">חדרים: מעט → הרבה</option>
+        <option value="size-desc">גודל: גדול → קטן</option>
+        <option value="area">לפי אזור (א-ת)</option>
+      </select>
+    </div>
+    <button onclick="showPropMap()" class="btn-export" style="background:#0E0E0E;color:var(--gold-light);border-color:#0E0E0E">🗺 הצג נכסים על מפה</button>
     <div class="list" id="prop-db-list"></div>
+    <div id="prop-send-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#0E0E0E;border-top:1px solid var(--gold);padding:12px 16px;align-items:center;justify-content:space-between;z-index:300;direction:rtl">
+      <span style="color:#fff;font-size:13px">נבחרו <b id="prop-send-count" style="color:var(--gold-light)">0</b> נכסים</span>
+      <div style="display:flex;gap:8px">
+        <button onclick="clearPropSel()" style="background:none;border:1px solid rgba(255,255,255,0.3);border-radius:8px;padding:8px 12px;color:#fff;font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer">נקה</button>
+        <button onclick="openSendToClient()" style="background:#25D366;border:none;border-radius:8px;padding:8px 14px;color:#fff;font-family:'Heebo',sans-serif;font-size:12px;font-weight:600;cursor:pointer">📤 שלח ללקוח</button>
+      </div>
+    </div>
   </div>
+</div>
+
+<!-- PROPERTY MAP SCREEN -->
+<div class="screen" id="screen-propmap">
+  <div class="app-header">
+    <div class="hlogo"><img id="hdr-logo-img" style="height:48px;width:auto;mix-blend-mode:screen;filter:brightness(1.6) contrast(1.3)" src="" alt="Kings"><span style="color:var(--gold-light);font-size:11px;font-weight:600">מפת נכסים</span></div>
+    <button class="hback" onclick="showScreen('screen-propdb')">← חזור</button>
+  </div>
+  <div id="map-status" style="padding:8px 16px;font-size:12px;color:var(--gray);text-align:center;background:var(--white);border-bottom:1px solid var(--border)">טוען מפה...</div>
+  <div id="map" style="flex:1;min-height:60vh;width:100%"></div>
 </div>
 
 <!-- EDIT PROPERTY MODAL -->
@@ -604,7 +655,11 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
     <div class="fgroup"><label class="flabel">כתובת *</label><input class="finput" id="ep-addr" type="text"></div>
     <div class="fgroup"><label class="flabel">מחיר</label><input class="finput" id="ep-price" type="text"></div>
     <div class="fgroup"><label class="flabel">גודל במ״ר</label><input class="finput" id="ep-size" type="number"></div>
-    <div class="fgroup"><label class="flabel">הערות</label><input class="finput" id="ep-notes" type="text"></div>
+    <div class="fgroup"><label class="flabel">חדרים</label><input class="finput" id="ep-rooms" type="text" inputmode="decimal" placeholder="4"></div>
+    <div class="fgroup"><label class="flabel">אזור / שכונה</label><input class="finput" id="ep-area" type="text" placeholder="רחביה, תל אביב מרכז..."></div>
+    <div class="fgroup"><label class="flabel">תיאור / הערות</label><textarea class="ftextarea" id="ep-notes"></textarea>
+      <button type="button" onclick="fillPassage('ep')" class="btn-export" style="margin-top:6px">✨ צור תיאור אוטומטי</button>
+    </div>
     <!-- Exclusivity -->
     <div class="excl-toggle" onclick="togglePropExcl('ep')" style="margin:10px 0">
       <span class="excl-toggle-lbl">בלעדיות</span>
@@ -645,22 +700,6 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
   </div>
 </div>
 
-<!-- PROPERTY DETAILS MODAL -->
-<div class="modal-overlay" id="prop-modal">
-  <div class="modal-box">
-    <div class="modal-title">🏠 נכס חדש</div>
-    <div class="modal-sub">מלא את פרטי הנכס לפני המשך</div>
-    <div class="fgroup"><label class="flabel">כתובת מלאה *</label><input class="finput" id="pm-addr" type="text" placeholder="רחוב, מספר, עיר"></div>
-    <div class="fgroup"><label class="flabel">מחיר *</label><input class="finput" id="pm-price" type="text" inputmode="numeric" placeholder="₪ 0,000,000"></div>
-    <div class="fgroup"><label class="flabel">גודל במ״ר *</label><input class="finput" id="pm-size" type="number" placeholder="100"></div>
-    <div class="fgroup"><label class="flabel">הערות (אופציונלי)</label><input class="finput" id="pm-notes" type="text" placeholder="קומה, חדרים, מצב..."></div>
-    <div class="modal-actions">
-      <button class="btn-modal-cancel" onclick="closePropModal()">ביטול</button>
-      <button class="btn-modal-ok" onclick="savePropModal()">שמור נכס ←</button>
-    </div>
-  </div>
-</div>
-
 <!-- REMOTE SIGN SCREEN -->
 <div class="screen" id="screen-remote">
   <div class="app-header">
@@ -678,6 +717,7 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
       <div class="fgroup"><label class="flabel">שם מלא *</label><input class="finput" id="r-name" type="text" placeholder="שם פרטי + משפחה"></div>
       <div class="fgroup"><label class="flabel">טלפון *</label><input class="finput" id="r-phone" type="tel" placeholder="05X-XXXXXXX" dir="ltr"></div>
       <div class="fgroup"><label class="flabel">תעודת זהות *</label><input class="finput" id="r-id" type="text" inputmode="numeric" placeholder="000000000" maxlength="9"></div>
+      <div class="fgroup" id="r-prefs-wrap" style="display:none"><label class="flabel">מה אתה מחפש? (לא חובה)</label><textarea class="ftextarea" id="r-prefs" placeholder="לדוגמה: 4 חדרים, מרכז העיר, עד 2.5 מיליון, כניסה מיידית" style="min-height:56px"></textarea></div>
     </div>
     <div class="contract-box" id="r-contract" style="margin-bottom:14px"></div>
     <div class="sig-wrap">
@@ -748,6 +788,7 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
       <button class="tab-btn" onclick="switchTab('clients')">👥 לקוחות</button>
       <button class="tab-btn" onclick="switchTab('properties')">🏠 נכסים</button>
       <button class="tab-btn" onclick="switchTab('agents')">👤 סוכנים</button>
+      <button class="tab-btn" onclick="switchTab('analytics')">📊 ניתוח</button>
     </div>
     <div class="tab on" id="tab-agreements">
       <div class="filter-row">
@@ -782,10 +823,14 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
       <button onclick="openAddModal('agent')" class="btn-export" style="background:#0E0E0E;color:var(--gold-light)">+ הוסף סוכן</button>
       <div class="list" id="list-agents"></div>
     </div>
+    <div class="tab" id="tab-analytics">
+      <div id="analytics-body"></div>
+    </div>
   </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
 <script>
 /* ══ CONFIG ══ */
@@ -933,17 +978,25 @@ async function syncToSupabase(agreement, retryCount=0){
 
     // sync client (upsert)
     const ci = clientsDB.find(c=>c.id===agreement.clientId);
-    if(ci) await supaFetch('clients','POST',{
-      id: ci.id, name: ci.name, phone: ci.phone, seen: ci.seen
-    }, true);
+    if(ci){
+      const clientRes = await supaFetch('clients','POST', clientPayload(ci), true);
+      if(clientRes && !clientRes.ok && clientRes.status){
+        const clientErrText = await clientRes.text().catch(()=>'');
+        console.error('Supabase client sync failed:', clientRes.status, clientErrText);
+        // Surface this — client-save failures were previously completely silent,
+        // which is exactly why clients seemed to "vanish" between sessions:
+        // the agreement saved fine, but the client record never reached Supabase.
+        const toast=document.createElement('div');
+        toast.style.cssText='position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#C62828;color:#fff;padding:12px 20px;border-radius:10px;font-family:Heebo,sans-serif;font-size:11px;z-index:9999;max-width:320px;text-align:center;direction:ltr;word-break:break-all';
+        toast.textContent='Client save failed '+clientRes.status+': '+clientErrText.slice(0,120);
+        document.body.appendChild(toast);
+        setTimeout(()=>toast.remove(),12000);
+      }
+    }
     // sync property (upsert) — include ALL fields, not just addr/cnt/agents/seen,
     // otherwise every agreement sync silently wipes price/size/notes/exclusivity
     const pi = propsDB.find(p=>p.addr===agreement.addr);
-    if(pi) await supaFetch('properties','POST',{
-      addr: pi.addr, cnt: pi.cnt, agents: pi.agents, seen: pi.seen,
-      price: pi.price||'', size: pi.size||'', notes: pi.notes||'',
-      excl_on: pi.exclOn||false, excl_from: pi.exclFrom||'', excl_to: pi.exclTo||'',
-    }, true);
+    if(pi) await supaFetch('properties','POST', propPayload(pi), true);
   } catch(e){
     console.error('Supabase sync error:',e);
     // Show visible error so we know sync failed
@@ -994,8 +1047,8 @@ async function loadFromSupabase(){
       }));
       localStorage.setItem('k_ag',JSON.stringify(agreements));
     }
-    if(cls&&cls.length){ clientsDB=cls.map(c=>({id:c.id,name:c.name,phone:c.phone,seen:c.seen})); localStorage.setItem('k_cl',JSON.stringify(clientsDB)); }
-    if(prs&&prs.length){ propsDB=prs.map(p=>({addr:p.addr,cnt:p.cnt,agents:p.agents||[],seen:p.seen,price:p.price||'',size:p.size||'',notes:p.notes||'',exclOn:p.excl_on||false,exclFrom:p.excl_from||'',exclTo:p.excl_to||''})); localStorage.setItem('k_pr',JSON.stringify(propsDB)); }
+    if(cls&&cls.length){ clientsDB=cls.map(c=>({id:c.id,name:c.name,phone:c.phone,seen:c.seen,prefs:c.prefs||'',agentName:c.agent_name||''})); localStorage.setItem('k_cl',JSON.stringify(clientsDB)); }
+    if(prs&&prs.length){ propsDB=prs.map(p=>mapPropRow(p)); localStorage.setItem('k_pr',JSON.stringify(propsDB)); }
   } catch(e){ console.log('Supabase load error:',e); }
 }
 
@@ -1050,6 +1103,9 @@ function buildAgentGrid(){
 window.onload = async function(){
   // Build grid immediately - never block on Supabase
   buildAgentGrid();
+  // Detect which optional columns exist (rooms/area/lat/lng, prefs) so new
+  // fields sync when available without ever breaking saves when they're not.
+  detectSchema().catch(()=>{});
   // Sync Supabase in background
   loadAgentsFromSupa().then(()=>{
     buildAgentGrid();
@@ -1118,27 +1174,46 @@ function sendPushNotif(title, body){
   }
 }
 
+/* Notification dedup: track which signed agreement IDs we've already announced,
+   per agent, in localStorage — guarantees each signed doc notifies at most once
+   (ever, across sessions) and lets us unite several into a single banner. */
+function notifiedKey(agent){ return 'k_notified_'+agent; }
+function getNotifiedSet(agent){
+  try{ return new Set((JSON.parse(localStorage.getItem(notifiedKey(agent))||'[]')).map(String)); }
+  catch(e){ return new Set(); }
+}
+function saveNotifiedSet(agent,set){
+  try{ localStorage.setItem(notifiedKey(agent), JSON.stringify([...set])); }catch(e){}
+}
+async function fetchSignedForAgent(agentName){
+  const res = await fetch(
+    `${SUPA_URL}/rest/v1/agreements?agent=eq.${encodeURIComponent(agentName)}&signature=neq.&pending_sign=eq.false&select=id,client_name,addr&order=created_at.desc&limit=300`,
+    {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}}
+  );
+  const rows = await res.json();
+  return (rows && !rows.error) ? rows : [];
+}
+/* Diff freshly-signed rows against the notified set, then mark them all seen.
+   Returns only the rows that are newly signed since the last announcement. */
+function diffNewlySigned(agentName, rows){
+  const seen = getNotifiedSet(agentName);
+  const fresh = rows.filter(r=>!seen.has(String(r.id)));
+  rows.forEach(r=>seen.add(String(r.id)));
+  saveNotifiedSet(agentName, seen);
+  return fresh;
+}
+
 async function checkNewlySigned(agentName){
   try{
-    // Get last-seen timestamp from localStorage
-    const lastKey = 'k_lastseen_'+agentName;
-    const lastSeen = localStorage.getItem(lastKey) || '2000-01-01';
-
-    // Fetch agreements signed after lastSeen
-    const res = await fetch(
-      `${SUPA_URL}/rest/v1/agreements?agent=eq.${encodeURIComponent(agentName)}&signature=neq.&pending_sign=eq.false&created_at=gt.${lastSeen}&select=id,client_name,addr,date_str`,
-      {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}}
-    );
-    const rows = await res.json();
-    if(rows && !rows.error && rows.length > 0){
-      // Show banner
-      showSignedBanner(rows);
-      // Update lastSeen to now
-      localStorage.setItem(lastKey, new Date().toISOString());
-    } else {
-      // Still update lastSeen even if nothing new
-      if(lastSeen==='2000-01-01') localStorage.setItem(lastKey, new Date().toISOString());
+    const rows = await fetchSignedForAgent(agentName);
+    // First ever run for this agent: seed silently so we don't announce the
+    // entire signing history — only notify about documents signed from now on.
+    if(localStorage.getItem(notifiedKey(agentName))===null){
+      saveNotifiedSet(agentName, new Set(rows.map(r=>String(r.id))));
+      return;
     }
+    const fresh = diffNewlySigned(agentName, rows);
+    if(fresh.length) showSignedBanner(fresh);
   }catch(e){console.log('notif check err',e);}
 }
 
@@ -1177,17 +1252,9 @@ function startBgPolling(agentName){
   _bgInterval = setInterval(async ()=>{
     if(document.hidden) return; // only poll when tab is visible
     try{
-      const lastKey = 'k_lastseen_'+agentName;
-      const lastSeen = localStorage.getItem(lastKey) || '2000-01-01';
-      const res = await fetch(
-        `${SUPA_URL}/rest/v1/agreements?agent=eq.${encodeURIComponent(agentName)}&signature=neq.&pending_sign=eq.false&created_at=gt.${lastSeen}&select=id,client_name,addr`,
-        {headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}}
-      );
-      const rows = await res.json();
-      if(rows && !rows.error && rows.length > 0){
-        showSignedBanner(rows);
-        localStorage.setItem(lastKey, new Date().toISOString());
-      }
+      const rows = await fetchSignedForAgent(agentName);
+      const fresh = diffNewlySigned(agentName, rows);
+      if(fresh.length) showSignedBanner(fresh);
     }catch(e){}
   }, 60000); // every 60 seconds
 }
@@ -1317,29 +1384,6 @@ function pickNewAddr(inputId,ddId,addr){
   }
 }
 
-let _propModalInputId='', _propModalDdId='';
-function openPropModal(inputId,ddId,addr){
-  // No longer used - replaced by inline fields
-}
-function closePropModal(){ }
-function savePropModal(){
-  const addr=document.getElementById('pm-addr').value.trim();
-  const price=document.getElementById('pm-price').value.trim();
-  const size=document.getElementById('pm-size').value.trim();
-  if(!addr||!price||!size){alert('נא למלא כתובת, מחיר וגודל');return;}
-  const now=new Date().toISOString();
-  const exists=propsDB.findIndex(p=>p.addr.toLowerCase()===addr.toLowerCase());
-  const propEntry={addr,price,size,notes:document.getElementById('pm-notes').value.trim(),exclOn:false,exclFrom:'',exclTo:'',cnt:0,agents:[],seen:now};
-  if(exists>=0) Object.assign(propsDB[exists],{price,size,notes:propEntry.notes});
-  else propsDB.push(propEntry);
-  save();
-  syncPropsToSupa();
-  closePropModal();
-  // If address autocomplete field exists, fill it
-  const addrField=document.getElementById('f-addr');
-  if(addrField){addrField.value=addr;filterAddr(addr);}
-}
-
 /* ══ FORM ══ */
 function startForm(type){
   formType=type; lang='he'; exclOn=false; vatSale=false; vatRent=false;
@@ -1369,10 +1413,45 @@ function setLang(l){
   document.getElementById('lb-he').classList.toggle('on',l==='he');
   document.getElementById('lb-en').classList.toggle('on',l==='en');
 }
+function todayISO(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
 function toggleExcl(){
   exclOn=!exclOn;
   document.getElementById('excl-tog').classList.toggle('on',exclOn);
   document.getElementById('excl-dates').classList.toggle('open',exclOn);
+  if(exclOn){
+    // Default the exclusivity start to the document date (today); keep the
+    // start-date field hidden unless the user opts into a custom start.
+    const startTog=document.getElementById('excl-start-tog');
+    const fromWrap=document.getElementById('f-excl-from-wrap');
+    const startLbl=document.getElementById('excl-start-lbl');
+    const fromEl=document.getElementById('f-excl-from');
+    if(startTog) startTog.classList.remove('on');
+    if(fromWrap) fromWrap.style.display='none';
+    if(startLbl) startLbl.textContent='תאריך התחלה: יום החתימה';
+    if(fromEl) fromEl.value=todayISO();
+    recalcExclEnd('f');
+  }
+}
+function toggleCustomStart(){
+  const tog=document.getElementById('excl-start-tog');
+  const wrap=document.getElementById('f-excl-from-wrap');
+  const lbl=document.getElementById('excl-start-lbl');
+  const fromEl=document.getElementById('f-excl-from');
+  if(!tog||!wrap||!fromEl) return;
+  const on=!tog.classList.contains('on');
+  tog.classList.toggle('on',on);
+  wrap.style.display = on ? '' : 'none';
+  if(on){
+    if(lbl) lbl.textContent='תאריך התחלה מותאם';
+    if(!fromEl.value) fromEl.value=todayISO();
+  } else {
+    if(lbl) lbl.textContent='תאריך התחלה: יום החתימה';
+    fromEl.value=todayISO(); // revert to document date
+  }
+  recalcExclEnd('f');
 }
 function toggleVat(t){
   if(t==='sale'){
@@ -1420,8 +1499,8 @@ function getFormData(){
     addr: document.getElementById('f-addr').value.trim(),
     saleFee: document.getElementById('f-sale-fee').value!=='' ? document.getElementById('f-sale-fee').value : null,
     rentFee: document.getElementById('f-rent-fee').value!=='' ? document.getElementById('f-rent-fee').value : null,
-    exclFrom: exclFromVal,
-    exclTo:   exclToVal,
+    exclFrom: exclOn ? exclFromVal : '',
+    exclTo:   exclOn ? exclToVal : '',
     notes:   document.getElementById('f-notes').value.trim(),
     vatSale, vatRent,
   };
@@ -1682,8 +1761,10 @@ async function showMyAgreements(){
       </div>`;
     }
     const[cls,lbl]=TBADGES[a.type]||['t-sale','?'];
-    const signed=a.sig?'✅ נחתם':'⏳ ממתין לחתימה';
-    const signedColor=a.sig?'#2E7D32':'#E65100';
+    const _st=agStatus(a);
+    const signed=a.sig?'✅ נחתם':(_st==='expired'?'⛔ פג תוקף — ממתין לחתימה':'⏳ ממתין לחתימה');
+    const signedColor=a.sig?'#2E7D32':(_st==='expired'?'#B71C1C':'#E65100');
+    const _days=agDaysSince(a);
     return`<div class="lcard">
       <div class="lrow" onclick="openAgreementView('${String(a.id)}','my')">
         <div style="flex:1">
@@ -1691,6 +1772,7 @@ async function showMyAgreements(){
           <p>📍 ${a.addr}</p>
           <p style="font-size:10px;color:var(--gray)">${a.typeName||''}</p>
           <p style="font-size:10px;color:${signedColor};font-weight:600">${signed}</p>
+          ${(!a.sig&&_days!==null)?`<p style="font-size:10px;color:var(--gray)">⏱ ${_days===0?'נשלח היום':'ממתין '+_days+' ימים'}</p>`:''}
           ${a.excl?'<p style="font-size:10px;color:#6A1B9A;font-weight:600">✦ בלעדיות (2 עמודים)</p>':''}
         </div>
         <div class="lmeta">
@@ -1701,6 +1783,7 @@ async function showMyAgreements(){
       <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
         <button class="btn-send-link" style="flex:1;min-width:80px" onclick="openAgreementView('${String(a.id)}','my')">📄 צפה / חתום</button>
         <button class="btn-send-link" style="flex:1;min-width:80px;background:#25D366;color:#fff;border-color:#25D366" onclick="sendRemoteLink('${String(a.id)}')">✍🏻 שלח לחתימה</button>
+        ${!a.sig?`<button class="btn-send-link" style="flex:1;min-width:80px;background:#FFC107;color:#3A2E00;border-color:#FFC107" onclick="sendReminder('${String(a.id)}')">🔔 תזכורת</button>`:''}
         <button class="btn-send-link" style="flex:1;min-width:80px;background:#075E54;color:#fff;border-color:#075E54" onclick="shareAgreementWA('${String(a.id)}')">📤 שתף PDF</button>
       </div>
     </div>`;
@@ -1754,7 +1837,8 @@ function renderClientDB(){
     const cnt=agreements.filter(a=>a.clientId===c.id&&(!agent||a.agent===agent.name)).length;
     return`<div class="lcard">
       <div class="lrow">
-        <div><h4>${c.name}</h4><p>🪪 ${c.id||'—'} · 📞 ${c.phone||'—'}</p><p style="font-size:10px;color:var(--gray)">${cnt} הסכמים</p></div>
+        <div style="flex:1"><h4>${c.name}</h4><p>🪪 ${c.id||'—'} · 📞 ${c.phone||'—'}</p>${c.prefs?`<p style="font-size:10px;color:#1565C0">🔎 ${c.prefs}</p>`:''}<p style="font-size:10px;color:var(--gray)">${cnt} הסכמים</p></div>
+        <div class="lmeta"><button class="btn-edit-sm" onclick="editClient('${(c.id||'').replace(/'/g,'')}')">✏️ העדפות</button></div>
       </div>
     </div>`;
   }).join('');
@@ -1776,7 +1860,7 @@ function showPropDB(){
       if(rows&&!rows.error&&rows.length){
         rows.forEach(r=>{
           const idx=propsDB.findIndex(p=>p.addr===r.addr);
-          const mapped={addr:r.addr,cnt:r.cnt||0,agents:r.agents||[],seen:r.seen,price:r.price||'',size:r.size||'',notes:r.notes||'',exclOn:r.excl_on||false,exclFrom:r.excl_from||'',exclTo:r.excl_to||''};
+          const mapped=mapPropRow(r);
           if(idx>=0) Object.assign(propsDB[idx],mapped);
           else propsDB.push(mapped);
         });
@@ -1792,7 +1876,7 @@ function showPropDB(){
 function showAddPropForm(){
   const f=document.getElementById('add-prop-form');
   f.style.display=f.style.display==='none'?'block':'none';
-  ['ap-addr','ap-price','ap-size','ap-notes','ap-excl-from','ap-excl-to'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['ap-addr','ap-price','ap-size','ap-rooms','ap-area','ap-notes','ap-excl-from','ap-excl-to'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('ap-excl-tog').classList.remove('on');
   document.getElementById('ap-excl-dates').classList.remove('open');
 }
@@ -1807,6 +1891,8 @@ function addPropFromDB(){
   const agentName=agent?agent.name:'';
   const propData={
     addr, price, size,
+    rooms:(document.getElementById('ap-rooms')?.value||'').trim(),
+    area:(document.getElementById('ap-area')?.value||'').trim(),
     notes:document.getElementById('ap-notes').value.trim(),
     exclOn, exclFrom:document.getElementById('ap-excl-from').value,
     exclTo:document.getElementById('ap-excl-to').value,
@@ -1822,36 +1908,45 @@ function addPropFromDB(){
   renderPropDB();
 }
 function renderPropDB(){
-  const q=(document.getElementById('prop-search').value||'').toLowerCase();
+  const q=(document.getElementById('prop-search')?.value||'').toLowerCase();
   // For agents: only show properties they've been involved with or added
-  let list=[...propsDB].sort((a,b)=>new Date(b.seen||0)-new Date(a.seen||0));
+  let list=[...propsDB];
   if(agent) {
-    // Show properties where this agent is listed, OR that appear in their agreements
-    const myAddrs=new Set(agreements.filter(a=>a.agent===agent.name).map(a=>a.addr.toLowerCase()));
+    const myAddrs=new Set(agreements.filter(a=>a.agent===agent.name).map(a=>(a.addr||'').toLowerCase()));
     list=list.filter(p=>
       (p.agents&&p.agents.includes(agent.name)) ||
-      myAddrs.has(p.addr.toLowerCase())
+      myAddrs.has((p.addr||'').toLowerCase())
     );
   }
-  if(q)list=list.filter(p=>p.addr.toLowerCase().includes(q));
+  if(q)list=list.filter(p=>(p.addr||'').toLowerCase().includes(q)||(p.area||'').toLowerCase().includes(q));
+  const mode=document.getElementById('prop-sort')?.value||'recent';
+  list=sortProps(list,mode);
   const el=document.getElementById('prop-db-list');
+  if(!el) return;
+  updateSendBar();
   if(!list.length){el.innerHTML='<div class="empty">אין נכסים במאגר</div>';return;}
-  el.innerHTML=list.map(p=>`
-    <div class="lcard">
+  el.innerHTML=list.map(p=>{
+    const addrEsc=(p.addr||'').replace(/'/g,"\\'");
+    const checked=_propSel.has(p.addr)?'checked':'';
+    const line2=[p.price?`💰 ${p.price}`:'',p.rooms?`🛏 ${p.rooms} חד׳`:'',p.size?`📐 ${p.size} מ״ר`:''].filter(Boolean).join(' · ');
+    return`<div class="lcard">
       <div class="lrow">
-        <div style="flex:1">
-          <h4>📍 ${p.addr}</h4>
-          ${p.price?`<p>💰 ${p.price}</p>`:''}
-          ${p.size?`<p>📐 ${p.size} מ״ר</p>`:''}
-          ${p.notes?`<p style="color:var(--gray)">${p.notes}</p>`:''}
-          ${p.exclOn?`<p style="color:#6A1B9A;font-size:10px;font-weight:600">✦ בלעדיות: ${p.exclFrom||''} → ${p.exclTo||''}</p>`:''}
-          <p style="font-size:10px;color:var(--gray)">שימוש: ${p.cnt||0} פעם${p.agents&&p.agents.length?' · '+[...new Set(p.agents)].join(', '):''}</p>
-        </div>
+        <label style="display:flex;align-items:flex-start;gap:8px;flex:1;cursor:pointer">
+          <input type="checkbox" ${checked} style="margin-top:3px;accent-color:var(--gold)" onchange="togglePropSel('${addrEsc}',this.checked)">
+          <div style="flex:1">
+            <h4>📍 ${p.addr}</h4>
+            ${p.area?`<p>🏘 ${p.area}</p>`:''}
+            ${line2?`<p>${line2}</p>`:''}
+            ${p.notes?`<p style="color:var(--gray)">${p.notes}</p>`:''}
+            ${p.exclOn?`<p style="color:#6A1B9A;font-size:10px;font-weight:600">✦ בלעדיות: ${p.exclFrom||''} → ${p.exclTo||''}</p>`:''}
+            <p style="font-size:10px;color:var(--gray)">שימוש: ${p.cnt||0} פעם${p.agents&&p.agents.length?' · '+[...new Set(p.agents)].join(', '):''}</p>
+          </div>
+        </label>
         <div class="lmeta">
-          <button class="btn-send-link" onclick="openEditProp('${p.addr.replace(/'/g,"\\'")}')">✏️ עריכה</button>
+          <button class="btn-edit-sm" onclick="openEditProp('${addrEsc}')">✏️ עריכה</button>
         </div>
       </div>
-    </div>`).join('');
+    </div>`;}).join('');
 }
 let _editPropAddr='';
 function openEditProp(addr){
@@ -1862,6 +1957,8 @@ function openEditProp(addr){
   document.getElementById('ep-addr').value=p?p.addr:'';
   document.getElementById('ep-price').value=p?p.price||'':'';
   document.getElementById('ep-size').value=p?p.size||'':'';
+  const epRooms=document.getElementById('ep-rooms'); if(epRooms) epRooms.value=p?p.rooms||'':'';
+  const epArea=document.getElementById('ep-area'); if(epArea) epArea.value=p?p.area||'':'';
   document.getElementById('ep-notes').value=p?p.notes||'':'';
   const exclOn=p?p.exclOn||false:false;
   const tog=document.getElementById('ep-excl-tog');
@@ -1887,6 +1984,8 @@ function savePropEdit(){
     addr:newAddr,
     price:document.getElementById('ep-price').value.trim(),
     size:document.getElementById('ep-size').value.trim(),
+    rooms:(document.getElementById('ep-rooms')?.value||'').trim(),
+    area:(document.getElementById('ep-area')?.value||'').trim(),
     notes:document.getElementById('ep-notes').value.trim(),
     exclOn,
     exclFrom:document.getElementById('ep-excl-from').value,
@@ -2243,6 +2342,9 @@ function loadRemoteSign(data){
   if(data.clientName) document.getElementById('r-name').value=data.clientName;
   if(data.clientPhone) document.getElementById('r-phone').value=data.clientPhone;
   if(data.clientId) document.getElementById('r-id').value=data.clientId;
+  // Optional "what are you looking for" — only for client-seeking agreement types
+  const prefsWrap=document.getElementById('r-prefs-wrap');
+  if(prefsWrap) prefsWrap.style.display = ['buyer','renter','both-client'].includes(data.type) ? '' : 'none';
   // Show contract text
   const d={name:data.clientName,id:data.clientId,phone:data.clientPhone,
             addr:data.addr,saleFee:data.saleFee,rentFee:data.rentFee,
@@ -2333,9 +2435,20 @@ async function submitRemote(){
   // Update clients DB — always save (even without ID, using phone-based fallback key)
   const clientKey = id || ('ph_'+phone.replace(/\D/g,''));
   const ci=clientsDB.findIndex(c=>(c.id||('ph_'+(c.phone||'').replace(/\D/g,'')))===clientKey);
-  if(ci>=0){clientsDB[ci].name=name;clientsDB[ci].phone=phone;clientsDB[ci].id=clientKey;}
-  else clientsDB.push({name,id:clientKey,phone,seen:new Date().toISOString()});
+  const clientSeenAt = new Date().toISOString();
+  const prefsVal=(document.getElementById('r-prefs')?.value||'').trim();
+  if(ci>=0){clientsDB[ci].name=name;clientsDB[ci].phone=phone;clientsDB[ci].id=clientKey; if(prefsVal) clientsDB[ci].prefs=prefsVal;}
+  else clientsDB.push({name,id:clientKey,phone,seen:clientSeenAt,prefs:prefsVal});
   save();
+  // CRITICAL: also push this client to Supabase directly. This screen runs on
+  // the CLIENT's own device (opened the signing link from WhatsApp) — it has
+  // nothing to do with the agent's session, so without this explicit sync the
+  // client only ever existed in localStorage on the client's own phone and
+  // never reached the shared database at all.
+  try{
+    const _cRec = clientsDB.find(c=>(c.id||('ph_'+(c.phone||'').replace(/\D/g,'')))===clientKey) || {id:clientKey,name,phone,seen:clientSeenAt,prefs:prefsVal};
+    await supaFetch('clients','POST', clientPayload(_cRec), true);
+  }catch(e){console.log('remote client sync err',e);}
 
   // Show success
   // Build agreement object for PDF generation using ALL data fetched from Supabase
@@ -2645,6 +2758,21 @@ async function quickSendWA(){
   const hasExclData = exclOn && d.exclFrom && d.exclTo;
   const exclText = hasExclData ? (document.getElementById('excl-contract-text')?.value || exclAgreementText(d, agent?agent.name:'')) : null;
   const clientKey = d.id || ('ph_'+d.phone.replace(/\D/g,''));
+  // Capture new-property inline fields (price/size/notes/exclusivity) — these
+  // were previously silently dropped here even though submitAgreement read them.
+  const newPropFieldsQ=document.getElementById('new-prop-fields');
+  let newPropEntry=null;
+  if(newPropFieldsQ && newPropFieldsQ.style.display!=='none'){
+    const price=document.getElementById('f-prop-price').value.trim();
+    const size=document.getElementById('f-prop-size').value.trim();
+    const pnotes=document.getElementById('f-prop-notes').value.trim();
+    const fpExclOn=document.getElementById('fp-excl-tog')?.classList.contains('on')||false;
+    newPropEntry={addr:d.addr,price,size,notes:pnotes,
+      exclOn:fpExclOn,
+      exclFrom:document.getElementById('fp-excl-from')?.value||'',
+      exclTo:document.getElementById('fp-excl-to')?.value||'',
+      cnt:0,agents:[],seen:now.toISOString()};
+  }
   const a={
     id:Date.now(),type:formType,typeName:FNAMES[formType]['he'],
     agent:agent.name,agentEn:agent.nameEn||agent.name,agentId:agent.id||'',agentPhone:agent.phone||'',agentLicense:agent.license||'',
@@ -2666,8 +2794,21 @@ async function quickSendWA(){
   if(ci>=0) clientsDB[ci]={name:d.name,id:clientKey,phone:d.phone,seen:now.toISOString(),agentName:agent.name};
   else clientsDB.push({name:d.name,id:clientKey,phone:d.phone,seen:now.toISOString(),agentName:agent.name});
   const pi=propsDB.findIndex(p=>p.addr.toLowerCase()===d.addr.toLowerCase());
-  if(pi>=0){propsDB[pi].cnt++;propsDB[pi].seen=now.toISOString();}
-  else propsDB.push({addr:d.addr,cnt:1,agents:[agent.name],seen:now.toISOString()});
+  if(pi>=0){
+    propsDB[pi].cnt++;propsDB[pi].seen=now.toISOString();
+    if(!propsDB[pi].agents.includes(agent.name))propsDB[pi].agents.push(agent.name);
+    // If new-property fields were filled (e.g. price was added retroactively), merge them in too
+    if(newPropEntry){
+      Object.assign(propsDB[pi],{price:newPropEntry.price,size:newPropEntry.size,notes:newPropEntry.notes,
+        exclOn:newPropEntry.exclOn,exclFrom:newPropEntry.exclFrom,exclTo:newPropEntry.exclTo});
+    }
+  } else if(newPropEntry){
+    newPropEntry.agents=[agent.name];
+    newPropEntry.cnt=1;
+    propsDB.push(newPropEntry);
+  } else {
+    propsDB.push({addr:d.addr,cnt:1,agents:[agent.name],seen:now.toISOString()});
+  }
   save();
   await syncToSupabase(a); // wait for save to complete before sending link
   // Open WhatsApp directly
@@ -2865,7 +3006,7 @@ async function syncPropsToSupa(){
       await fetch(`${SUPA_URL}/rest/v1/properties`,{
         method:'POST',
         headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
-        body:JSON.stringify({addr:p.addr,cnt:p.cnt||0,agents:p.agents||[],seen:p.seen||new Date().toISOString(),price:p.price||'',size:p.size||'',notes:p.notes||'',excl_on:p.exclOn||false,excl_from:p.exclFrom||'',excl_to:p.exclTo||''})
+        body:JSON.stringify(propPayload(p))
       });
     }
   }catch(e){console.log('props sync err',e);}
@@ -2880,7 +3021,7 @@ async function loadPropsFromSupa(){
     if(rows&&!rows.error&&rows.length){
       rows.forEach(r=>{
         const idx=propsDB.findIndex(p=>p.addr===r.addr);
-        const mapped={addr:r.addr,cnt:r.cnt||0,agents:r.agents||[],seen:r.seen,price:r.price||'',size:r.size||'',notes:r.notes||'',exclOn:r.excl_on||false,exclFrom:r.excl_from||'',exclTo:r.excl_to||''};
+        const mapped=mapPropRow(r);
         if(idx>=0) Object.assign(propsDB[idx],mapped);
         else propsDB.push(mapped);
       });
@@ -2896,7 +3037,7 @@ async function syncClientsToSupa(){
       await fetch(`${SUPA_URL}/rest/v1/clients`,{
         method:'POST',
         headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
-        body:JSON.stringify({id:cl.id,name:cl.name,phone:cl.phone||'',seen:cl.seen||new Date().toISOString(),agent_name:cl.agentName||''})
+        body:JSON.stringify(clientPayload(cl))
       });
     }
   }catch(e){console.log('clients sync err',e);}
@@ -2993,7 +3134,8 @@ function showEditModal(type, f1, f2, f3, f4){
     title=_editId?'✏️ עריכת לקוח':'+ לקוח חדש';
     fields=`<div class="fg"><label class="fl">שם *</label><input class="fi" id="em-f1" value="${f1}"></div>
       <div class="fg"><label class="fl">ת.ז.</label><input class="fi" id="em-f2" value="${f2}" inputmode="numeric"></div>
-      <div class="fg"><label class="fl">טלפון</label><input class="fi" id="em-f3" value="${f3}" type="tel"></div>`;
+      <div class="fg"><label class="fl">טלפון</label><input class="fi" id="em-f3" value="${f3}" type="tel"></div>
+      <div class="fg"><label class="fl">מה הלקוח מחפש? (העדפות)</label><textarea class="fi" id="em-prefs" style="min-height:56px;resize:vertical">${String(f4||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea></div>`;
   } else if(type==='agent'){
     title=_editId?'✏️ עריכת סוכן':'+ סוכן חדש';
     fields=`<div class="fg"><label class="fl">שם בעברית *</label><input class="fi" id="em-f1" value="${f1}"></div>
@@ -3021,13 +3163,16 @@ async function saveMgrEdit(){
   const f2=(document.getElementById('em-f2')?.value||'').trim();
   const f3=(document.getElementById('em-f3')?.value||'').trim();
   if(_editType==='client'){
+    const prefsVal=(document.getElementById('em-prefs')?.value||'').trim();
     if(_editId){
       const idx=clientsDB.findIndex(c=>c.id===_editId);
-      if(idx>=0){clientsDB[idx].name=f1;clientsDB[idx].id=f2;clientsDB[idx].phone=f3;}
+      if(idx>=0){clientsDB[idx].name=f1;clientsDB[idx].id=f2;clientsDB[idx].phone=f3;clientsDB[idx].prefs=prefsVal;}
     } else {
-      clientsDB.push({name:f1,id:f2,phone:f3,seen:new Date().toISOString()});
+      clientsDB.push({name:f1,id:f2,phone:f3,prefs:prefsVal,seen:new Date().toISOString()});
     }
-    save(); syncClientsToSupa(); document.getElementById('mgr-edit-modal').remove(); renderClients();
+    save(); syncClientsToSupa(); document.getElementById('mgr-edit-modal').remove();
+    if(document.getElementById('screen-clientdb')?.classList.contains('active')) renderClientDB();
+    else renderClients();
   } else if(_editType==='agent'){
     const f3=(document.getElementById('em-f3')?.value||'').trim();
     const f4=(document.getElementById('em-f4')?.value||'').trim();
@@ -3092,7 +3237,7 @@ async function deleteItem(type, id){
 function editClient(id){
   _editType='client'; _editId=id;
   const c=clientsDB.find(x=>x.id===id);if(!c)return;
-  showEditModal('client',c.name,c.id||'',c.phone,'');
+  showEditModal('client',c.name,c.id||'',c.phone,c.prefs||'');
 }
 async function deleteAgent(name){
   if(!confirm(`למחוק את הסוכן ${name}? פעולה זו אינה ניתנת לביטול.`)) return;
@@ -3117,6 +3262,322 @@ function editAgent(name){
 }
 
 /* ══ MANAGER RENDER FUNCTIONS ══ */
+/* ══ AGREEMENT STATUS PIPELINE (derived from existing data — no new DB columns) ══ */
+const AG_EXPIRE_DAYS = 14;
+function agDate(a){
+  if(a && a.date){ const d=new Date(a.date); if(!isNaN(d.getTime())) return d; }
+  if(a && a.dateStr){
+    const m=String(a.dateStr).match(/(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})/);
+    if(m){ const yr=m[3].length===2?('20'+m[3]):m[3]; const d=new Date(+yr,+m[2]-1,+m[1]); if(!isNaN(d.getTime())) return d; }
+  }
+  return null;
+}
+function agDaysSince(a){
+  const d=agDate(a); if(!d) return null;
+  return Math.floor((Date.now()-d.getTime())/86400000);
+}
+function agStatus(a){
+  if(a && a.sig) return 'signed';
+  const days=agDaysSince(a);
+  if(days!==null && days>AG_EXPIRE_DAYS) return 'expired';
+  return 'pending';
+}
+function agStatusBadge(a){
+  const s=agStatus(a);
+  if(s==='signed') return '<span class="st-badge st-signed">✅ נחתם</span>';
+  if(s==='expired') return '<span class="st-badge st-expired">⛔ פג תוקף</span>';
+  return '<span class="st-badge st-pending">⏳ ממתין</span>';
+}
+function agWaitLine(a){
+  if(a && a.sig) return '';
+  const d=agDaysSince(a);
+  if(d===null) return '';
+  const color=agStatus(a)==='expired'?'#B71C1C':'#E65100';
+  const txt=d===0?'נשלח היום':('ממתין '+d+' ימים');
+  return `<p style="font-size:10px;color:${color};font-weight:600">⏱ ${txt}</p>`;
+}
+/* Feature 2: WhatsApp signing reminder for an unsigned agreement */
+function sendReminder(agreementId){
+  const a=agreements.find(x=>String(x.id)===String(agreementId));
+  if(!a){alert('הסכם לא נמצא');return;}
+  if(a.sig){alert('ההסכם כבר נחתם — אין צורך בתזכורת');return;}
+  const link=makeSignLink(a);
+  const ph=phoneToWA(a.clientPhone);
+  const isEn=(a.lang==='en');
+  const msg=encodeURIComponent(isEn
+    ? `Hello ${a.clientName},\n\nA friendly reminder from ${a.agentEn||a.agent} at Kings Jerusalem — your brokerage agreement is still waiting for your signature.\n\n✍🏻 Sign here:\n${link}`
+    : `שלום ${a.clientName},\n\nתזכורת ידידותית מ${a.agent} ב-Kings Jerusalem — הסכם התיווך עדיין ממתין לחתימתך.\n\n✍🏻 לחתימה:\n${link}`);
+  window.open(`https://wa.me/${ph}?text=${msg}`,'_blank');
+  setTimeout(()=>{
+    const toast=document.createElement('div');
+    toast.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0E0E0E;color:#B8963E;padding:12px 20px;border-radius:10px;font-family:Heebo,sans-serif;font-size:13px;font-weight:600;z-index:999;border:1px solid #B8963E;white-space:nowrap';
+    toast.textContent='🔔 תזכורת נשלחה ל-'+a.clientName;
+    document.body.appendChild(toast);
+    setTimeout(()=>toast.remove(),3000);
+  },800);
+}
+
+/* Feature 5: Manager analytics — all metrics derived from existing data */
+function renderAnalytics(){
+  const el=document.getElementById('analytics-body');
+  if(!el) return;
+  try{
+    const now=new Date();
+    const ym=now.getFullYear()+'-'+(now.getMonth()+1);
+    const inThisMonth=a=>{const d=agDate(a);return !!d && (d.getFullYear()+'-'+(d.getMonth()+1))===ym;};
+    const total=agreements.length;
+    const signed=agreements.filter(a=>a.sig).length;
+    const pending=agreements.filter(a=>!a.sig&&agStatus(a)==='pending').length;
+    const expired=agreements.filter(a=>!a.sig&&agStatus(a)==='expired').length;
+    const stuck=agreements.filter(a=>!a.sig&&(agDaysSince(a)!==null)&&agDaysSince(a)>AG_EXPIRE_DAYS).length;
+    const conv=total?Math.round((signed/total)*100):0;
+    const monthAgs=agreements.filter(inThisMonth);
+    const monthSigned=monthAgs.filter(a=>a.sig).length;
+    const agentNames=(typeof AGENTS!=='undefined'&&Array.isArray(AGENTS))?AGENTS.map(x=>x.name):[];
+    const names=[...new Set([...agentNames,...agreements.map(a=>a.agent)])].filter(Boolean);
+    const perAgent=names.map(n=>{
+      const ags=agreements.filter(a=>a.agent===n);
+      const s=ags.filter(a=>a.sig).length;
+      const m=ags.filter(inThisMonth).length;
+      return {n,t:ags.length,s,m,conv:ags.length?Math.round((s/ags.length)*100):0};
+    }).filter(p=>p.t>0).sort((a,b)=>b.t-a.t);
+    const maxT=Math.max(1,...perAgent.map(p=>p.t));
+    el.innerHTML=`
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-num">${conv}%</div><div class="stat-lbl">אחוז חתימה</div></div>
+        <div class="stat-card"><div class="stat-num">${monthAgs.length}</div><div class="stat-lbl">החודש</div></div>
+        <div class="stat-card"><div class="stat-num">${stuck}</div><div class="stat-lbl">תקועים +${AG_EXPIRE_DAYS}י׳</div></div>
+      </div>
+      <div class="an-section">
+        <div class="an-title">סטטוס הסכמים</div>
+        <div class="an-row"><span class="nm">✅ חתומים</span><span class="vl">${signed}</span></div>
+        <div class="an-row"><span class="nm">⏳ ממתינים לחתימה</span><span class="vl">${pending}</span></div>
+        <div class="an-row"><span class="nm">⛔ פג תוקף (מעל ${AG_EXPIRE_DAYS} ימים)</span><span class="vl">${expired}</span></div>
+        <div class="an-row"><span class="nm">📄 סה״כ הסכמים</span><span class="vl">${total}</span></div>
+      </div>
+      <div class="an-section">
+        <div class="an-title">החודש</div>
+        <div class="an-row"><span class="nm">הסכמים שנוצרו</span><span class="vl">${monthAgs.length}</span></div>
+        <div class="an-row"><span class="nm">מתוכם נחתמו</span><span class="vl">${monthSigned}</span></div>
+      </div>
+      <div class="an-section">
+        <div class="an-title">ביצועי סוכנים</div>
+        ${perAgent.length?perAgent.map(p=>`
+          <div style="padding:8px 0;border-bottom:1px solid var(--gold-pale)">
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px">
+              <span class="nm">👤 ${p.n}</span>
+              <span class="vl">${p.s}/${p.t} חתומים · ${p.conv}% · ${p.m} החודש</span>
+            </div>
+            <div class="an-bar"><div class="an-bar-fill" style="width:${Math.round((p.t/maxT)*100)}%"></div></div>
+          </div>`).join(''):'<div class="empty">אין נתונים</div>'}
+      </div>
+      <div class="an-section">
+        <div class="an-title">סך הכל</div>
+        <div class="an-row"><span class="nm">👥 לקוחות</span><span class="vl">${clientsDB.length}</span></div>
+        <div class="an-row"><span class="nm">🏠 נכסים</span><span class="vl">${propsDB.length}</span></div>
+      </div>`;
+  }catch(e){
+    console.error('analytics render error',e);
+    el.innerHTML='<div class="empty">שגיאה בטעינת הנתונים</div>';
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ASSETS & CLIENTS UPGRADE
+   New persisted fields — properties: rooms, area, lat, lng · clients: prefs.
+   They sync to Supabase only when the columns exist; capability is detected
+   once at startup so existing saves never break before the columns are added.
+   ════════════════════════════════════════════════════════════════ */
+const EXT = { props:false, clients:false };
+async function detectSchema(){
+  const H={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY};
+  try{ const r=await fetch(`${SUPA_URL}/rest/v1/properties?select=rooms,area,lat,lng&limit=1`,{headers:H}); EXT.props=r.ok; }catch(e){ EXT.props=false; }
+  try{ const r=await fetch(`${SUPA_URL}/rest/v1/clients?select=prefs&limit=1`,{headers:H}); EXT.clients=r.ok; }catch(e){ EXT.clients=false; }
+  return EXT;
+}
+function propPayload(p){
+  const base={addr:p.addr,cnt:p.cnt||0,agents:p.agents||[],seen:p.seen||new Date().toISOString(),price:p.price||'',size:p.size||'',notes:p.notes||'',excl_on:p.exclOn||false,excl_from:p.exclFrom||'',excl_to:p.exclTo||''};
+  if(EXT.props) Object.assign(base,{rooms:p.rooms||'',area:p.area||'',lat:(p.lat==null?null:p.lat),lng:(p.lng==null?null:p.lng)});
+  return base;
+}
+function mapPropRow(r){
+  return {addr:r.addr,cnt:r.cnt||0,agents:r.agents||[],seen:r.seen,price:r.price||'',size:r.size||'',notes:r.notes||'',exclOn:r.excl_on||false,exclFrom:r.excl_from||'',exclTo:r.excl_to||'',rooms:r.rooms||'',area:r.area||'',lat:(r.lat==null?null:r.lat),lng:(r.lng==null?null:r.lng)};
+}
+function clientPayload(c){
+  const base={id:c.id,name:c.name,phone:c.phone||'',seen:c.seen||new Date().toISOString(),agent_name:c.agentName||''};
+  if(EXT.clients) base.prefs=c.prefs||'';
+  return base;
+}
+
+/* ── Auto-generated marketing passage for an asset (appears in notes) ── */
+function assetPassage(p){
+  if(!p) return '';
+  const parts=[];
+  const where = p.area ? (' ב'+p.area) : '';
+  let opening = 'נכס מוצע'+where;
+  if(p.addr) opening += ' בכתובת '+p.addr;
+  parts.push(opening+'.');
+  const specs=[];
+  if(p.rooms) specs.push(p.rooms+' חדרים');
+  if(p.size) specs.push(p.size+' מ״ר');
+  if(specs.length) parts.push('הנכס כולל '+specs.join(', ')+'.');
+  if(p.price) parts.push('המחיר המבוקש: '+p.price+'.');
+  if(p.exclOn) parts.push('הנכס מוצע בבלעדיות דרך המשרד.');
+  parts.push('לפרטים נוספים ותיאום סיור — Kings Jerusalem.');
+  return parts.join(' ');
+}
+function fillPassage(prefix){
+  const get=id=>document.getElementById(prefix+'-'+id);
+  const p={
+    addr:(get('addr')?.value||'').trim(),
+    price:(get('price')?.value||'').trim(),
+    size:(get('size')?.value||'').trim(),
+    rooms:(get('rooms')?.value||'').trim(),
+    area:(get('area')?.value||'').trim(),
+    exclOn:document.getElementById(prefix+'-excl-tog')?.classList.contains('on')||false,
+  };
+  const notesEl=get('notes');
+  if(notesEl) notesEl.value=assetPassage(p);
+}
+
+/* ── Sorting ── */
+function _numv(v){ const n=parseFloat(String(v==null?'':v).replace(/[^\d.]/g,'')); return isNaN(n)?-Infinity:n; }
+function sortProps(list, mode){
+  const arr=[...list];
+  switch(mode){
+    case 'price-desc': arr.sort((a,b)=>_numv(b.price)-_numv(a.price)); break;
+    case 'price-asc':  arr.sort((a,b)=>_numv(a.price)-_numv(b.price)); break;
+    case 'rooms-desc': arr.sort((a,b)=>_numv(b.rooms)-_numv(a.rooms)); break;
+    case 'rooms-asc':  arr.sort((a,b)=>_numv(a.rooms)-_numv(b.rooms)); break;
+    case 'size-desc':  arr.sort((a,b)=>_numv(b.size)-_numv(a.size)); break;
+    case 'area':       arr.sort((a,b)=>String(a.area||'').localeCompare(String(b.area||''),'he')); break;
+    default:           arr.sort((a,b)=>new Date(b.seen||0)-new Date(a.seen||0));
+  }
+  return arr;
+}
+
+/* ── Multi-select assets + send to a client ── */
+let _propSel = new Set();
+function togglePropSel(addr, checked){ if(checked) _propSel.add(addr); else _propSel.delete(addr); updateSendBar(); }
+function updateSendBar(){
+  const bar=document.getElementById('prop-send-bar'); if(!bar) return;
+  const n=_propSel.size;
+  bar.style.display = n>0 ? 'flex':'none';
+  const c=document.getElementById('prop-send-count'); if(c) c.textContent=n;
+}
+function clearPropSel(){ _propSel.clear(); updateSendBar(); renderPropDB(); }
+function composeAssetsMessage(name){
+  const chosen=propsDB.filter(p=>_propSel.has(p.addr));
+  const blocks=chosen.map(p=>{
+    const header='📍 '+p.addr+(p.area?(' · '+p.area):'');
+    const specs=[p.rooms?(p.rooms+' חד׳'):'',p.size?(p.size+' מ״ר'):'',p.price?('💰 '+p.price):''].filter(Boolean).join(' · ');
+    const desc=(p.notes&&p.notes.trim())?('\n'+p.notes.trim()):'';
+    return [header,specs].filter(Boolean).join('\n')+desc;
+  });
+  const greeting = name?('שלום '+name+',\n\n'):'שלום,\n\n';
+  return greeting+'מצאתי עבורך את הנכסים הבאים:\n\n'+blocks.join('\n\n—  —  —\n\n')+'\n\nבברכה,\n'+(agent?agent.name:'')+' · Kings Jerusalem';
+}
+function openSendToClient(){
+  if(_propSel.size===0){alert('בחר נכס אחד לפחות');return;}
+  const existing=document.getElementById('send-client-modal'); if(existing) existing.remove();
+  const clients=[...clientsDB].sort((a,b)=>new Date(b.seen||0)-new Date(a.seen||0));
+  const modal=document.createElement('div');
+  modal.id='send-client-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:600;display:flex;align-items:center;justify-content:center;padding:18px';
+  modal.innerHTML=`<div style="background:#fff;border-radius:16px;padding:20px 16px;width:100%;max-width:380px;max-height:80vh;display:flex;flex-direction:column">
+    <div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:600;margin-bottom:4px">שליחת ${_propSel.size} נכסים ללקוח</div>
+    <div style="font-size:11px;color:var(--gray);margin-bottom:12px">בחר לקוח מהמאגר או הזן מספר טלפון</div>
+    <input class="finput" id="send-client-search" placeholder="חיפוש לקוח..." oninput="renderSendClientList()" style="margin-bottom:8px">
+    <div id="send-client-list" style="overflow-y:auto;flex:1;margin-bottom:10px"></div>
+    <div style="border-top:1px solid var(--border);padding-top:10px">
+      <div class="fgroup" style="margin-bottom:6px"><label class="flabel">או טלפון ידני</label><input class="finput" id="send-client-phone" type="tel" placeholder="05X-XXXXXXX"></div>
+      <div style="display:flex;gap:8px">
+        <button onclick="document.getElementById('send-client-modal').remove()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:'Heebo',sans-serif;cursor:pointer;color:var(--gray)">ביטול</button>
+        <button onclick="sendAssetsToManual()" style="flex:1;background:#25D366;border:none;border-radius:8px;padding:11px;font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;color:#fff;cursor:pointer">📤 שלח בוואטסאפ</button>
+      </div>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+  renderSendClientList();
+}
+function renderSendClientList(){
+  const el=document.getElementById('send-client-list'); if(!el) return;
+  const q=(document.getElementById('send-client-search')?.value||'').toLowerCase();
+  let list=[...clientsDB].sort((a,b)=>new Date(b.seen||0)-new Date(a.seen||0));
+  if(q) list=list.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.phone||'').includes(q));
+  list=list.slice(0,40);
+  if(!list.length){ el.innerHTML='<div class="empty" style="padding:14px">אין לקוחות תואמים</div>'; return; }
+  el.innerHTML=list.map(c=>`<div class="ac-item" style="border:1px solid var(--border);border-radius:8px;margin-bottom:6px" onclick="sendAssetsTo('${(c.phone||'').replace(/'/g,'')}','${(c.name||'').replace(/'/g,'')}')">
+    <div class="ac-main">${c.name||'—'}</div>
+    <div class="ac-sub">📞 ${c.phone||'—'}${c.prefs?(' · 🔎 '+c.prefs):''}</div>
+  </div>`).join('');
+}
+function sendAssetsToManual(){
+  const phone=(document.getElementById('send-client-phone')?.value||'').trim();
+  if(!phone){alert('בחר לקוח או הזן מספר טלפון');return;}
+  sendAssetsTo(phone,'');
+}
+function sendAssetsTo(phone, name){
+  if(!phone){alert('אין מספר טלפון ללקוח זה — הזן ידנית');return;}
+  const body=composeAssetsMessage(name);
+  window.open(`https://wa.me/${phoneToWA(phone)}?text=${encodeURIComponent(body)}`,'_blank');
+  const m=document.getElementById('send-client-modal'); if(m) m.remove();
+  _propSel.clear(); updateSendBar(); renderPropDB();
+}
+
+/* ── Geocoding + Leaflet map (OpenStreetMap, no API key) ── */
+async function geocodeAddr(addr){
+  if(!addr) return null;
+  const q=encodeURIComponent(addr+', ישראל');
+  const res=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=il&q=${q}`,{headers:{'Accept':'application/json'}});
+  const rows=await res.json();
+  if(rows&&rows.length) return {lat:parseFloat(rows[0].lat), lng:parseFloat(rows[0].lon)};
+  return null;
+}
+function propsForCurrentAgent(){
+  let list=[...propsDB];
+  if(agent){
+    const myAddrs=new Set(agreements.filter(a=>a.agent===agent.name).map(a=>(a.addr||'').toLowerCase()));
+    list=list.filter(p=>(p.agents&&p.agents.includes(agent.name))||myAddrs.has((p.addr||'').toLowerCase()));
+  }
+  return list;
+}
+let _leafletMap=null;
+async function showPropMap(){
+  showScreen('screen-propmap');
+  const statusEl=document.getElementById('map-status');
+  const list=propsForCurrentAgent();
+  if(typeof L==='undefined'){ if(statusEl) statusEl.textContent='המפה אינה זמינה (נדרש חיבור לאינטרנט)'; return; }
+  setTimeout(async ()=>{
+    try{
+      if(!_leafletMap){
+        _leafletMap=L.map('map').setView([31.78,35.21],11); // Jerusalem
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(_leafletMap);
+      } else { _leafletMap.invalidateSize(); }
+      if(_leafletMap._markerLayer) _leafletMap.removeLayer(_leafletMap._markerLayer);
+      const layer=L.layerGroup().addTo(_leafletMap); _leafletMap._markerLayer=layer;
+      const pts=[]; let done=0; const toGeo=list.filter(p=>p.lat==null||p.lng==null).length; let newCoords=false;
+      for(const p of list){
+        if(p.lat==null||p.lng==null){
+          if(statusEl) statusEl.textContent=`מאתר כתובות... (${++done}/${toGeo})`;
+          try{ const c=await geocodeAddr(p.addr); if(c){ p.lat=c.lat; p.lng=c.lng; newCoords=true; } }catch(e){}
+          await new Promise(r=>setTimeout(r,1100)); // Nominatim: max ~1 req/sec
+        }
+        if(p.lat!=null&&p.lng!=null){
+          const icon=L.divIcon({className:'',html:'<div style="font-size:26px;line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))">📍</div>',iconSize:[26,26],iconAnchor:[13,26]});
+          L.marker([p.lat,p.lng],{icon}).addTo(layer).bindPopup(
+            `<b>${p.addr}</b>${p.price?'<br>💰 '+p.price:''}${p.rooms?'<br>🛏 '+p.rooms+' חד׳':''}${p.size?'<br>📐 '+p.size+' מ״ר':''}${p.area?'<br>📍 '+p.area:''}`
+          );
+          pts.push([p.lat,p.lng]);
+        }
+      }
+      if(pts.length) _leafletMap.fitBounds(pts,{padding:[40,40],maxZoom:15});
+      if(statusEl) statusEl.textContent = pts.length?(pts.length+' נכסים על המפה'):'לא נמצאו כתובות למיפוי';
+      if(newCoords){ save(); syncPropsToSupa(); } // cache coordinates so next open is instant
+    }catch(e){ if(statusEl) statusEl.textContent='שגיאה בטעינת המפה'; console.error('map err',e); }
+  },300);
+}
+
 function renderAgreements(){
   _selected.agreement.clear();
   const delBtn=document.getElementById('del-sel-ags');if(delBtn)delBtn.style.display='none';
@@ -3135,13 +3596,14 @@ function renderAgreements(){
         <label style="display:flex;align-items:flex-start;gap:8px;flex:1;cursor:pointer">
           <input type="checkbox" style="margin-top:3px;accent-color:var(--gold)" onchange="toggleSelect('agreement','${sid}',this)">
           <div onclick="openAgreementView('${sid}','screen-mgr')" style="flex:1">
-            <h4>${a.clientName}</h4><p>📍 ${a.addr}</p><p>👤 ${a.agent} · ${a.dateStr}</p>
+            <h4>${a.clientName}</h4><p>📍 ${a.addr}</p><p>👤 ${a.agent} · ${a.dateStr}</p>${agWaitLine(a)}
           </div>
         </label>
-        <div class="lmeta"><span class="tbadge ${cls}">${lbl}</span>${a.sig?'<span style="font-size:9px;color:#2E7D32">✅</span>':'<span style="font-size:9px;color:#E65100">⏳</span>'}</div>
+        <div class="lmeta"><span class="tbadge ${cls}">${lbl}</span>${agStatusBadge(a)}</div>
       </div>
       <div style="display:flex;gap:6px;margin-top:6px">
         <button class="btn-edit-sm" onclick="openAgreementView('${sid}','screen-mgr')">📄 צפה</button>
+        ${!a.sig?`<button class="btn-remind" onclick="sendReminder('${sid}')">🔔 תזכורת</button>`:''}
         <button class="btn-del" onclick="deleteItem('agreement','${sid}')">🗑 מחק</button>
       </div>
     </div>`;
@@ -3155,6 +3617,7 @@ function renderClients(){
   let list=[...clientsDB].sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
   if(q)list=list.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.id||'').includes(q));
   const el=document.getElementById('list-clients');
+  if(!el) return;
   if(!list.length){el.innerHTML='<div class="empty">אין לקוחות</div>';return;}
   el.innerHTML=list.map(c=>{
     const cnt=agreements.filter(a=>a.clientId===c.id).length;
@@ -3163,7 +3626,7 @@ function renderClients(){
       <div class="lrow">
         <label style="display:flex;align-items:flex-start;gap:8px;flex:1;cursor:pointer">
           <input type="checkbox" style="margin-top:3px;accent-color:var(--gold)" onchange="toggleSelect('client','${key}',this)">
-          <div><h4>${c.name}</h4><p>🪪 ${c.id||'—'} · 📞 ${c.phone||'—'}</p><p style="font-size:10px;color:var(--gray)">${cnt} הסכמים</p></div>
+          <div><h4>${c.name}</h4><p>🪪 ${c.id||'—'} · 📞 ${c.phone||'—'}</p>${c.prefs?`<p style="font-size:10px;color:#1565C0">🔎 ${c.prefs}</p>`:''}<p style="font-size:10px;color:var(--gray)">${cnt} הסכמים</p></div>
         </label>
         <div class="lmeta" style="display:flex;flex-direction:column;gap:4px">
           <button class="btn-edit-sm" onclick="editClient('${c.id}')">✏️</button>
@@ -3222,6 +3685,7 @@ function renderAgents(){
 
 /* ══ MANAGER LOAD ══ */
 async function loadMgr(){
+  await detectSchema().catch(()=>{});
   document.getElementById('mgr-stats').innerHTML='<div style="grid-column:span 3;text-align:center;color:var(--gray);font-size:12px">⏳ טוען...</div>';
   // Load agents + props from Supabase first
   await Promise.all([loadAgentsFromSupa(), loadPropsFromSupa()]);
@@ -3234,11 +3698,12 @@ async function loadMgr(){
     if(rows&&!rows.error){
       agreements=rows.map(r=>({
         id:r.id,type:r.type,typeName:r.type_name,
-        agent:r.agent,agentEn:r.agent_en||'',agentPhone:r.agent_phone||'',agentLicense:r.agent_license||'',
+        agent:r.agent,agentEn:r.agent_en||'',agentId:r.agent_id||'',agentPhone:r.agent_phone||'',agentLicense:r.agent_license||'',
         clientName:r.client_name,clientId:r.client_id||'',clientPhone:r.client_phone,
-        addr:r.addr,saleFee:r.sale_fee,rentFee:r.rent_fee,
+        addr:r.addr,propPrice:r.prop_price||'',saleFee:r.sale_fee,rentFee:r.rent_fee,
         vatSale:r.vat_sale,vatRent:r.vat_rent,notes:r.notes||'',
         lang:r.lang||'he',excl:r.excl||false,exclFrom:r.excl_from||'',exclTo:r.excl_to||'',
+        exclContractText:r.excl_contract_text||'',customText:r.custom_text||'',
         sig:r.signature||'',date:r.created_at,dateStr:r.date_str,
         pendingSign:r.pending_sign||false,
       }));
@@ -3249,15 +3714,18 @@ async function loadMgr(){
   const fa=document.getElementById('fil-agent');
   fa.innerHTML='<option value="">כל הסוכנים</option>';
   [...new Set(agreements.map(a=>a.agent))].sort().forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;fa.appendChild(o);});
-  renderAgreements(); renderClients(); renderProperties(); renderAgents();
+  renderAgreements(); renderClients(); renderProperties(); renderAgents(); renderAnalytics();
 }
 
 function switchTab(t){
+  const order=['agreements','clients','properties','agents','analytics'];
   document.querySelectorAll('.tab-btn').forEach((b,i)=>{
-    b.classList.toggle('on',['agreements','clients','properties','agents'][i]===t);
+    b.classList.toggle('on',order[i]===t);
   });
   document.querySelectorAll('.tab').forEach(c=>c.classList.remove('on'));
-  document.getElementById('tab-'+t).classList.add('on');
+  const tabEl=document.getElementById('tab-'+t);
+  if(tabEl) tabEl.classList.add('on');
+  if(t==='analytics') renderAnalytics();
 }
 
 /* ══ DETAIL PANELS ══ */
