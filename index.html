@@ -895,6 +895,11 @@ async function supaDelete(table, filter){
 
 async function syncToSupabase(agreement, retryCount=0){
   try {
+    // Validate critical fields before syncing
+    const exclText = agreement.exclContractText && typeof agreement.exclContractText === 'string' 
+      ? agreement.exclContractText 
+      : '';
+    
     const res = await supaFetch('agreements','POST',{
       id: String(agreement.id),
       type: agreement.type,
@@ -918,7 +923,7 @@ async function syncToSupabase(agreement, retryCount=0){
       excl: agreement.excl||false,
       excl_from: agreement.exclFrom||'',
       excl_to: agreement.exclTo||'',
-      excl_contract_text: agreement.exclContractText||'',
+      excl_contract_text: exclText, // Use validated text
       custom_text: agreement.customText||'',
       signature: agreement.sig||'',
       date_str: agreement.dateStr,
@@ -2110,14 +2115,16 @@ function printInIframe(html){
 }
 
 function dlViewPDF(){
-  const a=agreements.find(x=>String(x.id)===String(viewingAgreementId));
-  if(!a)return;
+  const idx=agreements.findIndex(x=>String(x.id)===String(viewingAgreementId));
+  if(idx<0) return;
+  const a=agreements[idx];
   let changed=false;
+  
   // Save any edits from the main contract textarea
   const ta=document.getElementById('view-contract-ta');
   if(ta){
     const edited=ta.value;
-    if(edited!==window._viewOrigText){
+    if(edited && edited!==window._viewOrigText){
       a.customText=edited;
       changed=true;
     }
@@ -2126,22 +2133,25 @@ function dlViewPDF(){
   const exclTa=document.getElementById('view-excl-ta');
   if(exclTa){
     const editedExcl=exclTa.value;
-    if(editedExcl!==window._viewOrigExclText){
+    // Store exclusivity text ONLY if it's non-empty and changed
+    if(editedExcl && editedExcl!==window._viewOrigExclText){
       a.exclContractText=editedExcl;
       changed=true;
     }
   }
+  
   if(changed){
-    const idx=agreements.findIndex(x=>String(x.id)===String(viewingAgreementId));
-    if(idx>=0) agreements[idx]=a;
+    agreements[idx]=a;
     save();
     syncToSupabase(a); // persist edits to Supabase too
   }
+  
   if(a.type==='collab'){
     printInIframe(buildCollabPDFHtml(a));
     return;
   }
-  if(a.excl&&a.exclContractText){
+  // Check BOTH conditions: excl flag AND exclContractText non-empty
+  if(a.excl && a.exclContractText && typeof a.exclContractText==='string' && a.exclContractText.length>10){
     printInIframe(buildCombinedPDFHtml(a));
   } else {
     printInIframe(buildPDFHtml(a));
@@ -2264,20 +2274,20 @@ function loadRemoteSign(data){
   const ct=document.getElementById('r-contract');
   ct.className='contract-box'+(data.lang==='en'?' en':'');
   const mainText = data.customText || contractText(data.type,data.lang||'he',d);
-  const hasExcl = data.excl && data.exclContractText;
+  const hasExcl = data.excl && data.exclContractText && typeof data.exclContractText === 'string' && data.exclContractText.length > 10;
   const exclBlock = hasExcl ? `
     <div style="margin-top:18px;padding-top:16px;border-top:2px dashed #CE93D8">
       <div style="text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #E1BEE7">
         <div style="font-size:13px;font-weight:700;color:#6A1B9A">✦ ${data.lang==='en'?'Exclusivity Agreement':'הסכם בלעדיות לשיווק נכס'}</div>
       </div>
-      <div style="white-space:pre-line;font-size:11px">${data.exclContractText}</div>
+      <div style="white-space:pre-line;font-size:11px">${(data.exclContractText||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
       <div style="background:#F3E5F5;border:1px solid rgba(106,27,154,0.3);border-radius:6px;padding:8px 12px;margin-top:10px;font-size:10px;color:#6A1B9A">⚠️ ${data.lang==='en'?'This signature applies to both documents — the brokerage agreement and the exclusivity agreement.':'החתימה הינה נוגעת לשני המסמכים — הסכם התיווך והסכם הבלעדיות כאחד.'}</div>
     </div>` : '';
   ct.innerHTML=`<div style="text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--gold-pale)">
     <div style="font-family:'Playfair Display',serif;font-size:14px;color:var(--gold)">Kings Jerusalem Luxury Real Estate</div>
     <div style="font-size:12px;font-weight:600;margin-top:4px">${data.typeName}</div>
     <div style="font-size:10px;color:var(--gray)">תאריך: ${data.dateStr}</div>
-  </div><div style="white-space:pre-line;font-size:11px">${mainText}</div>${exclBlock}`;
+  </div><div style="white-space:pre-line;font-size:11px">${mainText.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>${exclBlock}`;
   showScreen('screen-remote');
   setTimeout(()=>setupRemoteCanvas(),200);
 }
@@ -2330,6 +2340,9 @@ async function submitRemote(){
     agreements[idx].clientPhone=phone;
     agreements[idx].clientId=id;
     agreements[idx].pendingSign=false;
+    // Preserve exclContractText and customText from remote data
+    agreements[idx].exclContractText=data.exclContractText||'';
+    agreements[idx].customText=data.customText||'';
   } else {
     // Add to local if not exists (different device)
     agreements.push({
@@ -2399,10 +2412,8 @@ function dlClientPDF(){
   if(a.type==='collab') html=buildCollabPDFHtml(a);
   else if(a.excl&&a.exclContractText) html=buildCombinedPDFHtml(a);
   else html=buildPDFHtml(a);
-  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  window.open(url,'_blank');
-  setTimeout(()=>URL.revokeObjectURL(url), 30000);
+  // Print to PDF instead of just opening HTML
+  printInIframe(html);
 }
 function setupCanvas(id,isQ){
   const c=document.getElementById(id);
@@ -2472,12 +2483,12 @@ async function submitAgreement(requireSig=true){
     clientName:d.name,clientId:clientKey,clientPhone:d.phone,
     addr:d.addr,saleFee:d.saleFee,rentFee:d.rentFee,
     vatSale:d.vatSale,vatRent:d.vatRent,notes:d.notes,
-    lang,excl:exclOn,exclFrom:d.exclFrom,exclTo:d.exclTo,
+    lang,excl:exclOn,exclFrom:d.exclFrom||'',exclTo:d.exclTo||'',
     propPrice:(()=>{const pi=propsDB.findIndex(p=>p.addr.toLowerCase()===d.addr.toLowerCase());return pi>=0?propsDB[pi].price||'':'';})(),
     sig,date:now.toISOString(),dateStr:now.toLocaleDateString('he-IL'),
     pendingSign:!sig,
     customText: editedText !== contractText(formType,lang,d) ? editedText : null,
-    exclContractText: editedExclText,
+    exclContractText: editedExclText || null,
   };
   agreements.push(a);
   // Client key already computed above (clientKey) — use it consistently
@@ -2561,6 +2572,13 @@ function buildCombinedPDFHtml(a){
   // <style> blocks, the second one silently overrides the first due to CSS
   // cascade — breaking page1's layout and removing the page-break. To avoid
   // any collision we rename every class in page2's CSS + HTML to ep-* (excl page).
+  
+  // Validate that both documents have content
+  if(!a.exclContractText){
+    console.warn('WARNING: exclusivity contract text is missing, falling back to brokerage agreement only');
+    return buildPDFHtml(a);
+  }
+  
   const page1 = buildPDFHtml(a);
   const page2 = buildExclPDFHtml(a);
 
@@ -2606,7 +2624,8 @@ function buildPDFHtml(a){
     ? `<strong>Rental Commission:</strong> ${a.rentFee} month${a.vatRent?' (VAT incl.)':' + VAT'}`
     : `<strong>עמלת שכ"ד:</strong> ${a.rentFee} חודש${a.vatRent?' (כולל מע"מ)':' + מע"מ'}`);
   const sigImg=a.sig?`<img src="${a.sig}" style="max-width:200px;max-height:65px;display:block;margin-top:8px">`:'<div style="height:65px;border-bottom:1px solid #999;width:220px;margin-top:30px"></div>';
-  const dualNote=a.excl&&a.exclContractText?`<div style="background:#F3E5F5;border:1px solid rgba(106,27,154,0.3);border-radius:5px;padding:8px 12px;margin-bottom:10px;font-size:9.5pt;color:#6A1B9A">⚠️ ${en?'This signature applies to both documents — the brokerage agreement and the exclusivity agreement.':'החתימה הינה נוגעת לשני המסמכים — הסכם התיווך והסכם הבלעדיות כאחד.'}</div>`:'';;
+  // Only show dual-note if BOTH excl flag is true AND exclContractText is non-empty
+  const dualNote=(a.excl&&a.exclContractText&&typeof a.exclContractText==='string'&&a.exclContractText.length>10)?`<div style="background:#F3E5F5;border:1px solid rgba(106,27,154,0.3);border-radius:5px;padding:8px 12px;margin-bottom:10px;font-size:9.5pt;color:#6A1B9A">⚠️ ${en?'This signature applies to both documents — the brokerage agreement and the exclusivity agreement.':'החתימה הינה נוגעת לשני המסמכים — הסכם התיווך והסכם הבלעדיות כאחד.'}</div>`:'';;
   const styles=`<style>
   @page{size:A4;margin:0}*{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Arial','David','Helvetica',sans-serif;font-size:10pt;color:#222;direction:${dir};width:210mm;min-height:297mm}
@@ -2668,7 +2687,9 @@ async function quickSendWA(){
   if(!d.name||!d.phone||!d.addr){alert('נא למלא שם, טלפון וכתובת');return;}
   const now=new Date();
   const hasExclData = exclOn && d.exclFrom && d.exclTo;
-  const exclText = hasExclData ? (document.getElementById('excl-contract-text')?.value || exclAgreementText(d, agent?agent.name:'')) : null;
+  // Always capture both the textarea value AND generated text if needed
+  const exclTextarea = document.getElementById('excl-contract-text');
+  const exclText = hasExclData ? (exclTextarea ? exclTextarea.value : exclAgreementText(d, agent?agent.name:'')) : '';
   const clientKey = d.id || ('ph_'+d.phone.replace(/\D/g,''));
   // Capture new-property inline fields (price/size/notes/exclusivity) — these
   // were previously silently dropped here even though submitAgreement read them.
@@ -2690,8 +2711,8 @@ async function quickSendWA(){
     agent:agent.name,agentEn:agent.nameEn||agent.name,agentId:agent.id||'',agentPhone:agent.phone||'',agentLicense:agent.license||'',
     clientName:d.name,clientId:clientKey,clientPhone:d.phone,
     addr:d.addr,saleFee:d.saleFee,rentFee:d.rentFee,
-    vatSale,vatRent,notes:d.notes,
-    lang,excl:exclOn,exclFrom:d.exclFrom,exclTo:d.exclTo,
+    vatSale:d.vatSale,vatRent:d.vatRent,notes:d.notes,
+    lang,excl:exclOn,exclFrom:d.exclFrom||'',exclTo:d.exclTo||'',
     exclContractText:exclText,
     sig:'',date:now.toISOString(),dateStr:now.toLocaleDateString('he-IL'),
     pendingSign:true,
