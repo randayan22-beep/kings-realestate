@@ -1014,14 +1014,14 @@ async function supaDelete(table, filter){
   }catch(e){console.error('supaDelete error:',e);return false;}
 }
 
-async function syncToSupabase(agreement, retryCount=0){
+async function syncToSupabase(agreement, retryCount=0, throwOnError=false){
   try {
     // Validate critical fields before syncing
     const exclText = agreement.exclContractText && typeof agreement.exclContractText === 'string' 
       ? agreement.exclContractText 
       : '';
     
-    const res = await supaFetch('agreements','POST',{
+    const payload = {
       id: String(agreement.id),
       type: agreement.type,
       type_name: agreement.typeName,
@@ -1051,11 +1051,18 @@ async function syncToSupabase(agreement, retryCount=0){
       pending_sign: agreement.pendingSign||false,
       hide_addr: agreement.hideAddr||false,
       display_neighborhood: agreement.displayNeighborhood||'',
-    }, true); // true = upsert (merge-duplicates)
+    };
+    // pdf_data is only included when explicitly provided (see uploadPdfForSharing) —
+    // omitting the key entirely on ordinary syncs means PostgREST's upsert leaves any
+    // previously-stored PDF untouched, instead of overwriting it with null every time
+    // an unrelated field (notes, signature, etc.) gets saved.
+    if(agreement.pdfData){ payload.pdf_data = agreement.pdfData; }
+    const res = await supaFetch('agreements','POST', payload, true); // true = upsert (merge-duplicates)
 
     if(res && !res.ok && res.status){
       const errText = await res.text().catch(()=>'');
       console.error('Supabase agreements sync failed:', res.status, errText);
+      if(throwOnError) throw new Error(`שמירה נכשלה (${res.status}): ${errText.slice(0,200)}`);
       if(retryCount===0) throw new Error('sync failed: '+res.status);
     }
 
@@ -1088,6 +1095,7 @@ async function syncToSupabase(agreement, retryCount=0){
     }, true);
   } catch(e){
     console.error('Supabase sync error:',e);
+    if(throwOnError) throw e; // caller (e.g. uploadPdfForSharing) needs to know this failed
     // Show visible error so we know sync failed
     const toast=document.createElement('div');
     toast.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#C62828;color:#fff;padding:12px 20px;border-radius:10px;font-family:Heebo,sans-serif;font-size:12px;z-index:9999;max-width:300px;text-align:center;direction:rtl';
@@ -1220,6 +1228,10 @@ window.onload = async function(){
 
   // Handle remote sign links (only if ?id= or ?sign= in URL)
   const params = new URLSearchParams(window.location.search);
+  if(params.get('pdf')){
+    try { await loadPdfViewPage(params.get('pdf')); } catch(e){ console.log('PDF view error:',e); }
+    return;
+  }
   if(params.get('id') || params.get('sign')){
     try { await checkRemoteSign(); } catch(e){ console.log('Remote sign error:',e); showScreen('screen-login'); }
   }
@@ -2318,36 +2330,116 @@ function isMobileDevice(){
   return /Android|iPhone|iPad|iPod|Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent||'');
 }
 
-// Attempts to hand the PDF file to WhatsApp via the OS share sheet (the only way a web app
-// can attach a real file — wa.me links can only ever pre-fill text). On desktop / browsers
-// without file-sharing support, downloads the PDF and opens WhatsApp with text instead.
-// Returns true if something visibly happened (share sheet opened, or download+WA opened),
-// false if the browser silently refused (almost always a lost user-activation window — see
-// shareAgreementWA below for the retry flow this enables).
-async function attemptShareOrDownload(file, textMsg, waPhone){
+function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(String(reader.result).split(',')[1]||''); // strip "data:application/pdf;base64," prefix
+    reader.onerror=()=>reject(new Error('קריאת קובץ ה-PDF נכשלה'));
+    reader.readAsDataURL(file);
+  });
+}
+
+// Uploads the generated PDF into the agreement's OWN row in Supabase (pdf_data column) and
+// returns a link the client can open to view/download the actual document. This reuses the
+// exact same table + permissions the app already relies on for everything else — no new
+// Supabase bucket or policy needs to be set up. We sync through the FULL agreement object
+// (via syncToSupabase, same as every other save in the app) rather than a partial payload,
+// so no other field on the row is ever at risk of being touched.
+async function uploadPdfForSharing(agreementId, file){
+  const a = agreements.find(x=>String(x.id)===String(agreementId));
+  if(!a) throw new Error('הסכם לא נמצא לצורך העלאת ה-PDF');
+  const base64 = await fileToBase64(file);
+  const copy = Object.assign({}, a, {pdfData: base64});
+  try{
+    await syncToSupabase(copy, 0, true); // throwOnError=true — we need to know if this failed
+  }catch(err){
+    const msg = String(err && err.message || err);
+    if(/pdf_data/i.test(msg) || /column/i.test(msg) || /PGRST204/i.test(msg)){
+      throw new Error('חסרה עמודת "pdf_data" בטבלת agreements ב-Supabase. יש להוסיף אותה פעם אחת (SQL Editor):\nALTER TABLE agreements ADD COLUMN pdf_data TEXT;');
+    }
+    throw new Error('העלאת ה-PDF ל-Supabase נכשלה: '+msg);
+  }
+  return `${APP_URL}?pdf=${encodeURIComponent(String(agreementId))}`;
+}
+
+// Renders a standalone "view / download PDF" page for the ?pdf=<id> link sent in WhatsApp
+// messages on desktop. Fetches just this one agreement's stored PDF from Supabase and shows
+// it inline (when the browser can preview PDFs) plus an explicit download button.
+async function loadPdfViewPage(agreementId){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const scr=document.getElementById('screen-remote');
+  scr.classList.add('active');
+  scr.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px;text-align:center;background:#F7F5F0"><div style="font-family:\'Heebo\',sans-serif;color:#666">⏳ טוען את ההסכם...</div></div>';
+  try{
+    const res=await fetch(`${SUPA_URL}/rest/v1/agreements?id=eq.${encodeURIComponent(String(agreementId))}&select=pdf_data,type_name,client_name,date_str&limit=1`,{
+      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
+    });
+    const rows=await res.json();
+    const row=rows&&rows[0];
+    if(!row||!row.pdf_data){
+      scr.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px;text-align:center;background:#F7F5F0"><div style="font-family:\'Heebo\',sans-serif;color:#C62828">⚠️ הקובץ לא נמצא או שפג תוקפו.<br>נא לפנות לסוכן לקבלת ההסכם מחדש.</div></div>';
+      return;
+    }
+    // base64 -> Blob -> object URL (more reliable across browsers/mobile than a raw data: URI)
+    const byteChars=atob(row.pdf_data);
+    const byteNums=new Array(byteChars.length);
+    for(let i=0;i<byteChars.length;i++) byteNums[i]=byteChars.charCodeAt(i);
+    const blob=new Blob([new Uint8Array(byteNums)],{type:'application/pdf'});
+    const blobUrl=URL.createObjectURL(blob);
+    const filename=`הסכם_${sanitizeFilename(row.client_name||'')}.pdf`;
+    scr.innerHTML=`
+      <div style="display:flex;flex-direction:column;min-height:100vh;background:#F7F5F0">
+        <div style="background:#0E0E0E;padding:16px 20px;text-align:center">
+          <div style="font-family:'Playfair Display',serif;color:#B8963E;font-size:16px">Kings Jerusalem Luxury Real Estate</div>
+          <div style="color:#AAA;font-size:11px;margin-top:2px">${row.type_name||'הסכם'} · ${row.date_str||''}</div>
+        </div>
+        <div style="flex:1;padding:14px;display:flex;flex-direction:column;gap:12px">
+          <a href="${blobUrl}" download="${filename}" style="background:#0E0E0E;color:#B8963E;text-align:center;padding:14px;border-radius:12px;font-family:'Heebo',sans-serif;font-weight:600;font-size:14px;text-decoration:none">⬇️ הורד את ה-PDF</a>
+          <iframe src="${blobUrl}" style="flex:1;min-height:70vh;border:1px solid #ddd;border-radius:8px;background:#fff"></iframe>
+        </div>
+      </div>`;
+  }catch(err){
+    console.error('loadPdfViewPage failed:', err);
+    scr.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px;text-align:center;background:#F7F5F0"><div style="font-family:\'Heebo\',sans-serif;color:#C62828">⚠️ שגיאה בטעינת ההסכם. נא לפנות לסוכן.</div></div>';
+  }
+}
+
+
+// Attempts to hand WhatsApp the ACTUAL PDF file — not just text or a link:
+//  • Mobile: navigator.share() with a file — WhatsApp is always a share target on phones,
+//    so this delivers the real file directly, exactly like sharing a photo.
+//  • Desktop: confirmed (by testing) that a standard WhatsApp Desktop install is NOT
+//    registered as a Windows "share target", so navigator.share() never actually offers
+//    WhatsApp there — it only shows Mail/OneNote/etc., wasting a click for nothing. There is
+//    no browser API that can attach a file into a WhatsApp Web/Desktop chat automatically —
+//    that capability simply doesn't exist for a web page. The closest real equivalent:
+//    download the actual PDF file, open WhatsApp with the text ready, and have the agent
+//    drag the just-downloaded file into the chat — one unavoidable manual step, but the
+//    client ends up with the genuine physical file, not a link.
+// Returns true if something visibly happened, false if the browser silently refused (lost
+// user-activation) — shareAgreementWA below offers a guaranteed-fresh retry tap in that case.
+async function attemptShareOrDownload(file, textMsg, waPhone, agreementId){
   if(isMobileDevice() && navigator.canShare && navigator.canShare({files:[file]})){
     try{
       await navigator.share({files:[file], title:'Kings Jerusalem — הסכם', text:textMsg});
       return true;
     }catch(err){
-      if(err && err.name==='AbortError') return true; // user closed the share sheet themselves — handled, not a failure
+      if(err && err.name==='AbortError') return true; // user closed the picker themselves — handled, not a failure
       console.warn('navigator.share failed:', err);
       return false;
     }
   }
-  // Desktop (and any unsupported browser) — always goes through WhatsApp specifically:
-  // download the PDF, then open WhatsApp Web with the text ready. The agent attaches the
-  // downloaded file manually from their Downloads folder (WhatsApp Web has no API for a
-  // page to attach a file automatically — this is the closest a web app can get).
+  // Desktop: download the real file, open WhatsApp with the text, ask the agent to drag
+  // the downloaded file into the chat that just opened.
   const url=URL.createObjectURL(file);
-  const link=document.createElement('a');
-  link.href=url; link.download=file.name;
-  document.body.appendChild(link); link.click(); document.body.removeChild(link);
-  setTimeout(()=>URL.revokeObjectURL(url), 15000);
+  const dlLink=document.createElement('a');
+  dlLink.href=url; dlLink.download=file.name;
+  document.body.appendChild(dlLink); dlLink.click(); document.body.removeChild(dlLink);
+  setTimeout(()=>URL.revokeObjectURL(url), 30000);
   const ph=waPhone?phoneToWA(waPhone):'';
   const waWin=window.open(`https://wa.me/${ph}?text=${encodeURIComponent(textMsg)}`,'_blank');
   if(!waWin) return false; // popup silently blocked — caller will offer a fresh-tap retry
-  alert('קובץ ה-PDF ירד למחשב שלך (תיקיית ההורדות).\n\nוואטסאפ נפתח עם הודעת טקסט — נא לצרף את הקובץ שהורד ידנית.');
+  alert(`קובץ ה-PDF ("${file.name}") ירד לתיקיית ההורדות שלך.\n\nוואטסאפ נפתח עם הודעת הטקסט — כעת נא לגרור את הקובץ מההורדות לתוך חלון הצ'אט (או ללחוץ 📎 ולבחור אותו משם) כדי לצרף את הקובץ הפיזי בפועל.`);
   return true;
 }
 
@@ -3065,7 +3157,7 @@ async function shareAgreementWA(id, btnEl){
   }
 
   if(btnEl){ btnEl.textContent='📤 משתף...'; }
-  const ok = await attemptShareOrDownload(file, msg, a.clientPhone);
+  const ok = await attemptShareOrDownload(file, msg, a.clientPhone, a.id);
 
   if(ok){
     if(btnEl){ btnEl.disabled=false; btnEl.textContent=origLabel; }
@@ -3082,7 +3174,7 @@ async function shareAgreementWA(id, btnEl){
     btnEl.onclick=async()=>{
       btnEl.disabled=true;
       btnEl.textContent='📤 משתף...';
-      const ok2=await attemptShareOrDownload(file, msg, a.clientPhone);
+      const ok2=await attemptShareOrDownload(file, msg, a.clientPhone, a.id);
       btnEl.disabled=false;
       if(ok2){
         btnEl.textContent=origLabel;
