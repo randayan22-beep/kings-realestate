@@ -2273,19 +2273,28 @@ async function htmlToPdfFile(html, filename){
   const iframe=document.createElement('iframe');
   iframe.style.cssText='position:fixed;top:-9999px;left:-9999px;width:210mm;height:1600mm;border:none';
   document.body.appendChild(iframe);
+  // Watchdog: html2canvas can occasionally hang on unusual CSS instead of erroring out —
+  // without this, the agent would be stuck on "מכין PDF..." forever with no feedback.
+  const withTimeout=(promise, ms, label)=>Promise.race([
+    promise,
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error(`${label} — נמשך יותר מדי זמן (${ms/1000} שניות)`)), ms))
+  ]);
   try{
     iframe.contentDocument.open();
     iframe.contentDocument.write(html);
     iframe.contentDocument.close();
     // Give layout, fonts and inline base64 images time to paint before rasterizing
-    await new Promise(r=>setTimeout(r,600));
+    await new Promise(r=>setTimeout(r,800));
     const doc=iframe.contentDocument;
     const pages=Array.from(doc.body.children).filter(el=>el.tagName==='DIV');
     if(!pages.length) throw new Error('לא נמצאו עמודים ליצירת ה-PDF');
     const {jsPDF}=window.jspdf;
     const pdf=new jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
     for(let i=0;i<pages.length;i++){
-      const canvas=await html2canvas(pages[i],{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#ffffff'});
+      const canvas=await withTimeout(
+        html2canvas(pages[i],{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#ffffff'}),
+        20000, `רינדור עמוד ${i+1}`
+      );
       const imgData=canvas.toDataURL('image/jpeg',0.93);
       if(i>0) pdf.addPage('a4','portrait');
       pdf.addImage(imgData,'JPEG',0,0,210,297,undefined,'FAST');
@@ -2297,19 +2306,21 @@ async function htmlToPdfFile(html, filename){
   }
 }
 
-// Shares an actual PDF file via the OS share sheet (WhatsApp shows up as one of the targets
-// and the file gets attached automatically — this is the only way a web app can hand a real
-// file to WhatsApp; wa.me links can only ever pre-fill text, never attach a file).
-// Falls back to auto-downloading the PDF + opening WhatsApp with text on devices/browsers
-// that don't support sharing files (mainly desktop).
-async function shareOrDownloadPDFFile(file, textMsg, waPhone){
+// Attempts to hand the PDF file to WhatsApp via the OS share sheet (the only way a web app
+// can attach a real file — wa.me links can only ever pre-fill text). On desktop / browsers
+// without file-sharing support, downloads the PDF and opens WhatsApp with text instead.
+// Returns true if something visibly happened (share sheet opened, or download+WA opened),
+// false if the browser silently refused (almost always a lost user-activation window — see
+// shareAgreementWA below for the retry flow this enables).
+async function attemptShareOrDownload(file, textMsg, waPhone){
   if(navigator.canShare && navigator.canShare({files:[file]})){
     try{
       await navigator.share({files:[file], title:'Kings Jerusalem — הסכם', text:textMsg});
-      return 'shared';
+      return true;
     }catch(err){
-      if(err && err.name==='AbortError') return 'cancelled'; // user closed the share sheet — not an error
-      console.error('navigator.share failed, falling back to download:', err);
+      if(err && err.name==='AbortError') return true; // user closed the share sheet themselves — handled, not a failure
+      console.warn('navigator.share failed:', err);
+      return false;
     }
   }
   // Desktop / unsupported fallback: download the PDF, then open WhatsApp with the text
@@ -2319,10 +2330,11 @@ async function shareOrDownloadPDFFile(file, textMsg, waPhone){
   link.href=url; link.download=file.name;
   document.body.appendChild(link); link.click(); document.body.removeChild(link);
   setTimeout(()=>URL.revokeObjectURL(url), 15000);
-  alert('קובץ ה-PDF ירד למחשב שלך (תיקיית ההורדות).\n\nוואטסאפ ייפתח כעת עם הודעת טקסט — נא לצרף את הקובץ שהורד ידנית מהתיקייה.');
   const ph=waPhone?phoneToWA(waPhone):'';
-  window.open(`https://wa.me/${ph}?text=${encodeURIComponent(textMsg)}`,'_blank');
-  return 'downloaded';
+  const waWin=window.open(`https://wa.me/${ph}?text=${encodeURIComponent(textMsg)}`,'_blank');
+  if(!waWin) return false; // popup silently blocked — caller will offer a fresh-tap retry
+  alert('קובץ ה-PDF ירד למחשב שלך (תיקיית ההורדות).\n\nוואטסאפ נפתח עם הודעת טקסט — נא לצרף את הקובץ שהורד ידנית.');
+  return true;
 }
 
 function dlViewPDF(){
@@ -3005,6 +3017,14 @@ function sendWA(){
 // Share PDF via WhatsApp — generates a REAL PDF file (including exclusivity as an extra
 // page when relevant) and attaches it via the native share sheet, so the client actually
 // receives the document itself, not just a text message.
+//
+// IMPORTANT: browsers only allow navigator.share()/window.open() to run when triggered
+// directly by a user tap ("user activation"). Building the PDF takes a few seconds
+// (longer for 2-page agreements), and by the time it's ready the browser can consider the
+// original tap "expired" and silently refuse to share/open — no error, nothing visible.
+// To handle this reliably we try to share immediately, and if that's silently refused we
+// swap the button into a "PDF ready — tap to share" state so the NEXT tap is guaranteed
+// fresh and the share will actually go through (using the same already-built file).
 async function shareAgreementWA(id, btnEl){
   const a=agreements.find(x=>String(x.id)===String(id));
   if(!a){alert('הסכם לא נמצא');return;}
@@ -3014,18 +3034,53 @@ async function shareAgreementWA(id, btnEl){
     ? `Please find attached the brokerage agreement for ${displayAddr}.\nDate: ${a.dateStr}\nAgent: ${a.agentEn||a.agent} — Kings Jerusalem`
     : `מצורף הסכם התיווך עבור ${displayAddr}.\nתאריך: ${a.dateStr}\nסוכן: ${a.agent} — Kings Jerusalem`;
 
-  const origLabel = btnEl ? btnEl.textContent : null;
+  const origLabel = btnEl ? btnEl.textContent : '📤 שתף PDF';
+  const origOnclick = btnEl ? btnEl.getAttribute('onclick') : null;
   if(btnEl){ btnEl.disabled=true; btnEl.textContent='⏳ מכין PDF...'; }
+
+  let file;
   try{
     const html = getAgreementPDFHtml(a);
     const filename = `הסכם_${sanitizeFilename(a.clientName)}_${sanitizeFilename(a.dateStr).replace(/\./g,'-')}.pdf`;
-    const file = await htmlToPdfFile(html, filename);
-    await shareOrDownloadPDFFile(file, msg, a.clientPhone);
+    file = await htmlToPdfFile(html, filename);
   }catch(err){
-    console.error('shareAgreementWA failed:', err);
-    alert('אירעה שגיאה ביצירת ה-PDF לשיתוף. נסה שוב, או הורד את ההסכם (⬇️) ושלח אותו ידנית בוואטסאפ.');
-  }finally{
+    console.error('PDF generation failed:', err);
+    alert('אירעה שגיאה ביצירת ה-PDF:\n'+(err&&err.message?err.message:String(err))+'\n\nניתן להוריד את ההסכם דרך "📄 צפה / חתום" ולשלוח אותו ידנית בוואטסאפ.');
     if(btnEl){ btnEl.disabled=false; btnEl.textContent=origLabel; }
+    return;
+  }
+
+  if(btnEl){ btnEl.textContent='📤 משתף...'; }
+  const ok = await attemptShareOrDownload(file, msg, a.clientPhone);
+
+  if(ok){
+    if(btnEl){ btnEl.disabled=false; btnEl.textContent=origLabel; }
+    return;
+  }
+
+  // Silently refused — almost certainly the lost-activation issue described above.
+  // The PDF itself was generated successfully, so offer a guaranteed-fresh retry tap
+  // instead of making the agent regenerate it from scratch.
+  if(btnEl){
+    btnEl.disabled=false;
+    btnEl.style.background='#B8963E';
+    btnEl.textContent='✅ PDF מוכן — לחץ כאן לשיתוף';
+    btnEl.onclick=async()=>{
+      btnEl.disabled=true;
+      btnEl.textContent='📤 משתף...';
+      const ok2=await attemptShareOrDownload(file, msg, a.clientPhone);
+      btnEl.disabled=false;
+      if(ok2){
+        btnEl.textContent=origLabel;
+        btnEl.style.background='';
+        if(origOnclick){ btnEl.setAttribute('onclick', origOnclick); }
+        else{ btnEl.onclick=()=>shareAgreementWA(String(a.id), btnEl); }
+      }else{
+        btnEl.textContent='⚠️ עדיין לא הצליח — לחץ שוב';
+      }
+    };
+  }else{
+    alert('ה-PDF מוכן, אך הדפדפן חסם את פתיחת השיתוף אוטומטית. נסה שוב.');
   }
 }
 
