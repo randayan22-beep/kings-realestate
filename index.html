@@ -2306,6 +2306,18 @@ async function htmlToPdfFile(html, filename){
   }
 }
 
+// Detects mobile/touch devices (phones & tablets) — used so the native OS share sheet
+// (which shows Mail/OneNote/every installed app on desktop, not just WhatsApp) is only
+// offered on mobile, where it correctly surfaces WhatsApp as the natural choice. On
+// desktop we skip straight to "download PDF + open WhatsApp Web", which always lands
+// on WhatsApp specifically, as requested.
+function isMobileDevice(){
+  if(navigator.userAgentData && typeof navigator.userAgentData.mobile==='boolean'){
+    return navigator.userAgentData.mobile;
+  }
+  return /Android|iPhone|iPad|iPod|Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent||'');
+}
+
 // Attempts to hand the PDF file to WhatsApp via the OS share sheet (the only way a web app
 // can attach a real file — wa.me links can only ever pre-fill text). On desktop / browsers
 // without file-sharing support, downloads the PDF and opens WhatsApp with text instead.
@@ -2313,7 +2325,7 @@ async function htmlToPdfFile(html, filename){
 // false if the browser silently refused (almost always a lost user-activation window — see
 // shareAgreementWA below for the retry flow this enables).
 async function attemptShareOrDownload(file, textMsg, waPhone){
-  if(navigator.canShare && navigator.canShare({files:[file]})){
+  if(isMobileDevice() && navigator.canShare && navigator.canShare({files:[file]})){
     try{
       await navigator.share({files:[file], title:'Kings Jerusalem — הסכם', text:textMsg});
       return true;
@@ -2323,8 +2335,10 @@ async function attemptShareOrDownload(file, textMsg, waPhone){
       return false;
     }
   }
-  // Desktop / unsupported fallback: download the PDF, then open WhatsApp with the text
-  // ready — the agent attaches the downloaded file manually from their Downloads folder.
+  // Desktop (and any unsupported browser) — always goes through WhatsApp specifically:
+  // download the PDF, then open WhatsApp Web with the text ready. The agent attaches the
+  // downloaded file manually from their Downloads folder (WhatsApp Web has no API for a
+  // page to attach a file automatically — this is the closest a web app can get).
   const url=URL.createObjectURL(file);
   const link=document.createElement('a');
   link.href=url; link.download=file.name;
