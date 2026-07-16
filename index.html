@@ -957,8 +957,16 @@ function cleanPhone(phone){
 }
 
 function phoneToWA(phone){
-  // Returns 972XXXXXXXXX format for wa.me links
-  let p = cleanPhone(phone);
+  // International numbers entered with a leading "+" (e.g. "+1 305-555-1234" for a US
+  // client, or "+972-50-1234567") are already a complete international number — wa.me needs
+  // just the digits, no "+". Numbers WITHOUT a "+" are assumed to be local Israeli format
+  // (05X-XXXXXXX), the vast majority of this app's clients, and get the existing 0→972
+  // conversion.
+  const raw = String(phone||'').trim();
+  if(raw.startsWith('+')){
+    return raw.replace(/\D/g,''); // digits only — this fixes wa.me 404s for +1/other country codes
+  }
+  let p = cleanPhone(raw);
   if(p.startsWith('0')) p = '972' + p.slice(1);
   return p;
 }
