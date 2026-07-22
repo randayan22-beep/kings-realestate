@@ -187,6 +187,17 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
+<script>
+// Safety net: unregister any leftover Service Worker + clear Cache Storage from older
+// versions of this app. A stale SW can keep serving an old cached copy of index.html even
+// after a fresh deploy — this makes sure every visit self-heals instead of getting stuck.
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(regs=>regs.forEach(r=>r.unregister())).catch(()=>{});
+}
+if('caches' in window){
+  caches.keys().then(names=>names.forEach(n=>caches.delete(n))).catch(()=>{});
+}
+</script>
 
 <!-- DETAIL PANEL -->
 <div class="detail-panel" id="detail-panel">
