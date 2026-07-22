@@ -301,9 +301,25 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
       <!-- New property inline fields - shown when new address typed -->
       <div id="new-prop-fields" style="display:none">
         <div style="background:var(--gold-pale);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:11px;color:#7A5010">✨ נכס חדש — מלא פרטים (יישמר במאגר)</div>
+        <div class="fgroup"><label class="flabel">סוג נכס</label>
+          <select class="finput" id="f-prop-type">
+            <option value="דירה" selected>דירה</option>
+            <option value="חנות">חנות</option>
+            <option value="מגרש">מגרש</option>
+            <option value="מסחרי">מסחרי</option>
+          </select>
+        </div>
+        <div class="fgroup"><label class="flabel">עיר</label><input class="finput" id="f-prop-city" type="text" value="ירושלים"></div>
         <div class="fgroup"><label class="flabel">מחיר *</label><input class="finput" id="f-prop-price" type="text" inputmode="numeric" placeholder="₪ 0,000,000"></div>
         <div class="fgroup"><label class="flabel">גודל במ״ר *</label><input class="finput" id="f-prop-size" type="number" placeholder="100"></div>
         <div class="fgroup"><label class="flabel">קומה / חדרים / הערות</label><input class="finput" id="f-prop-notes" type="text" placeholder="לדוגמה: קומה 3, 4 חדרים"></div>
+        <div class="fgroup"><label class="flabel">גוש / חלקה / תת חלקה (אופציונלי)</label>
+          <div style="display:flex;gap:6px">
+            <input class="finput" id="f-prop-gush" type="text" placeholder="גוש" style="flex:1;min-width:0">
+            <input class="finput" id="f-prop-chelka" type="text" placeholder="חלקה" style="flex:1;min-width:0">
+            <input class="finput" id="f-prop-tatchelka" type="text" placeholder="תת חלקה" style="flex:1;min-width:0">
+          </div>
+        </div>
         <div class="excl-toggle" onclick="togglePropExcl('fp')" style="margin-bottom:8px">
           <span class="excl-toggle-lbl">כבר בבלעדיות?</span>
           <div class="tog" id="fp-excl-tog"></div>
@@ -619,9 +635,25 @@ canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair;
   <div class="modal-box">
     <div class="modal-title">✏️ עריכת נכס</div>
     <div class="fgroup"><label class="flabel">כתובת *</label><input class="finput" id="ep-addr" type="text"></div>
+    <div class="fgroup"><label class="flabel">סוג נכס</label>
+      <select class="finput" id="ep-prop-type">
+        <option value="דירה">דירה</option>
+        <option value="חנות">חנות</option>
+        <option value="מגרש">מגרש</option>
+        <option value="מסחרי">מסחרי</option>
+      </select>
+    </div>
+    <div class="fgroup"><label class="flabel">עיר</label><input class="finput" id="ep-city" type="text"></div>
     <div class="fgroup"><label class="flabel">מחיר</label><input class="finput" id="ep-price" type="text"></div>
     <div class="fgroup"><label class="flabel">גודל במ״ר</label><input class="finput" id="ep-size" type="number"></div>
     <div class="fgroup"><label class="flabel">הערות</label><input class="finput" id="ep-notes" type="text"></div>
+    <div class="fgroup"><label class="flabel">גוש / חלקה / תת חלקה (אופציונלי)</label>
+      <div style="display:flex;gap:6px">
+        <input class="finput" id="ep-gush" type="text" placeholder="גוש" style="flex:1;min-width:0">
+        <input class="finput" id="ep-chelka" type="text" placeholder="חלקה" style="flex:1;min-width:0">
+        <input class="finput" id="ep-tatchelka" type="text" placeholder="תת חלקה" style="flex:1;min-width:0">
+      </div>
+    </div>
     <!-- Exclusivity -->
     <div class="excl-toggle" onclick="togglePropExcl('ep')" style="margin:10px 0">
       <span class="excl-toggle-lbl">בלעדיות</span>
@@ -1526,13 +1558,16 @@ function startForm(type){
   document.getElementById('hide-addr-section').style.display=hasHideAddr?'block':'none';
   if(hasSale) document.getElementById('f-sale-fee').value='2';
   if(hasRent) document.getElementById('f-rent-fee').value='1';
-  ['f-name','f-id','f-phone','f-addr','f-excl-from','f-excl-to','f-notes','f-hide-addr','f-neighborhood-edit'].forEach(id=>{
+  ['f-name','f-id','f-phone','f-addr','f-excl-from','f-excl-to','f-notes','f-hide-addr','f-neighborhood-edit','f-prop-price','f-prop-size','f-prop-notes','f-prop-gush','f-prop-chelka','f-prop-tatchelka'].forEach(id=>{
     const el=document.getElementById(id); 
     if(el) {
       if(el.type==='checkbox') el.checked=false;
       else el.value='';
     }
   });
+  // Property type / city default to the common case rather than blank
+  const propTypeEl=document.getElementById('f-prop-type'); if(propTypeEl) propTypeEl.value='דירה';
+  const propCityEl=document.getElementById('f-prop-city'); if(propCityEl) propCityEl.value='ירושלים';
   document.getElementById('neighborhood-preview').style.display='none';
   showScreen('screen-form');
 }
@@ -2013,9 +2048,11 @@ function renderPropDB(){
       <div class="lrow">
         <div style="flex:1">
           <h4>📍 ${p.addr}</h4>
+          <p style="font-size:10px;color:var(--gray)">${p.propType||'דירה'} · ${p.city||'ירושלים'}</p>
           ${p.price?`<p>💰 ${p.price}</p>`:''}
           ${p.size?`<p>📐 ${p.size} מ״ר</p>`:''}
           ${p.notes?`<p style="color:var(--gray)">${p.notes}</p>`:''}
+          ${(p.gush||p.chelka||p.tatChelka)?`<p style="font-size:10px;color:var(--gray)">גוש/חלקה/תת: ${p.gush||'—'}/${p.chelka||'—'}/${p.tatChelka||'—'}</p>`:''}
           ${p.exclOn?`<p style="color:#6A1B9A;font-size:10px;font-weight:600">✦ בלעדיות: ${p.exclFrom||''} → ${p.exclTo||''}</p>`:''}
           <p style="font-size:10px;color:var(--gray)">שימוש: ${p.cnt||0} פעם${p.agents&&p.agents.length?' · '+[...new Set(p.agents)].join(', '):''}</p>
         </div>
@@ -2032,9 +2069,14 @@ function openEditProp(addr){
   document.querySelector('#edit-prop-modal .modal-title').textContent=isNew?'+ נכס חדש':'✏️ עריכת נכס';
   const p=isNew?null:propsDB.find(x=>x.addr===addr);
   document.getElementById('ep-addr').value=p?p.addr:'';
+  document.getElementById('ep-prop-type').value=p?p.propType||'דירה':'דירה';
+  document.getElementById('ep-city').value=p?p.city||'ירושלים':'ירושלים';
   document.getElementById('ep-price').value=p?p.price||'':'';
   document.getElementById('ep-size').value=p?p.size||'':'';
   document.getElementById('ep-notes').value=p?p.notes||'':'';
+  document.getElementById('ep-gush').value=p?p.gush||'':'';
+  document.getElementById('ep-chelka').value=p?p.chelka||'':'';
+  document.getElementById('ep-tatchelka').value=p?p.tatChelka||'':'';
   const exclOn=p?p.exclOn||false:false;
   const tog=document.getElementById('ep-excl-tog');
   const dates=document.getElementById('ep-excl-dates');
@@ -2057,9 +2099,14 @@ function savePropEdit(){
   const exclOn=document.getElementById('ep-excl-tog').classList.contains('on');
   const entry={
     addr:newAddr,
+    propType:document.getElementById('ep-prop-type').value||'דירה',
+    city:document.getElementById('ep-city').value.trim()||'ירושלים',
     price:document.getElementById('ep-price').value.trim(),
     size:document.getElementById('ep-size').value.trim(),
     notes:document.getElementById('ep-notes').value.trim(),
+    gush:document.getElementById('ep-gush').value.trim(),
+    chelka:document.getElementById('ep-chelka').value.trim(),
+    tatChelka:document.getElementById('ep-tatchelka').value.trim(),
     exclOn,
     exclFrom:document.getElementById('ep-excl-from').value,
     exclTo:document.getElementById('ep-excl-to').value,
@@ -2808,18 +2855,23 @@ async function submitAgreement(requireSig=true){
   // Save new property details if inline fields were shown
   const newPropFields=document.getElementById('new-prop-fields');
   if(newPropFields && newPropFields.style.display!=='none'){
+    const propType=document.getElementById('f-prop-type')?.value||'דירה';
+    const city=document.getElementById('f-prop-city')?.value.trim()||'ירושלים';
     const price=document.getElementById('f-prop-price').value.trim();
     const size=document.getElementById('f-prop-size').value.trim();
     const pnotes=document.getElementById('f-prop-notes').value.trim();
+    const gush=document.getElementById('f-prop-gush')?.value.trim()||'';
+    const chelka=document.getElementById('f-prop-chelka')?.value.trim()||'';
+    const tatChelka=document.getElementById('f-prop-tatchelka')?.value.trim()||'';
     const fpExclOn=document.getElementById('fp-excl-tog')?.classList.contains('on')||false;
     const pi2=propsDB.findIndex(p=>p.addr.toLowerCase()===d.addr.toLowerCase());
-    const propEntry={addr:d.addr,price,size,notes:pnotes,
+    const propEntry={addr:d.addr,propType,city,price,size,notes:pnotes,gush,chelka,tatChelka,
       exclOn:fpExclOn,
       exclFrom:document.getElementById('fp-excl-from')?.value||'',
       exclTo:document.getElementById('fp-excl-to')?.value||'',
       cnt:0,agents:[],seen:now.toISOString()};
     if(pi2<0) propsDB.push(propEntry);
-    else Object.assign(propsDB[pi2],{price,size,notes:pnotes,exclOn:fpExclOn,
+    else Object.assign(propsDB[pi2],{propType,city,price,size,notes:pnotes,gush,chelka,tatChelka,exclOn:fpExclOn,
       exclFrom:propEntry.exclFrom,exclTo:propEntry.exclTo});
   }
   const clientKey = d.id || ('ph_'+d.phone.replace(/\D/g,''));
@@ -3051,11 +3103,16 @@ async function quickSendWA(){
   const newPropFieldsQ=document.getElementById('new-prop-fields');
   let newPropEntry=null;
   if(newPropFieldsQ && newPropFieldsQ.style.display!=='none'){
+    const propType=document.getElementById('f-prop-type')?.value||'דירה';
+    const city=document.getElementById('f-prop-city')?.value.trim()||'ירושלים';
     const price=document.getElementById('f-prop-price').value.trim();
     const size=document.getElementById('f-prop-size').value.trim();
     const pnotes=document.getElementById('f-prop-notes').value.trim();
+    const gush=document.getElementById('f-prop-gush')?.value.trim()||'';
+    const chelka=document.getElementById('f-prop-chelka')?.value.trim()||'';
+    const tatChelka=document.getElementById('f-prop-tatchelka')?.value.trim()||'';
     const fpExclOn=document.getElementById('fp-excl-tog')?.classList.contains('on')||false;
-    newPropEntry={addr:d.addr,price,size,notes:pnotes,
+    newPropEntry={addr:d.addr,propType,city,price,size,notes:pnotes,gush,chelka,tatChelka,
       exclOn:fpExclOn,
       exclFrom:document.getElementById('fp-excl-from')?.value||'',
       exclTo:document.getElementById('fp-excl-to')?.value||'',
@@ -3089,7 +3146,9 @@ async function quickSendWA(){
     if(!propsDB[pi].agents.includes(agent.name))propsDB[pi].agents.push(agent.name);
     // If new-property fields were filled (e.g. price was added retroactively), merge them in too
     if(newPropEntry){
-      Object.assign(propsDB[pi],{price:newPropEntry.price,size:newPropEntry.size,notes:newPropEntry.notes,
+      Object.assign(propsDB[pi],{propType:newPropEntry.propType,city:newPropEntry.city,
+        price:newPropEntry.price,size:newPropEntry.size,notes:newPropEntry.notes,
+        gush:newPropEntry.gush,chelka:newPropEntry.chelka,tatChelka:newPropEntry.tatChelka,
         exclOn:newPropEntry.exclOn,exclFrom:newPropEntry.exclFrom,exclTo:newPropEntry.exclTo});
     }
   } else if(newPropEntry){
@@ -3356,7 +3415,7 @@ async function syncPropsToSupa(){
       await fetch(`${SUPA_URL}/rest/v1/properties`,{
         method:'POST',
         headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
-        body:JSON.stringify({addr:p.addr,cnt:p.cnt||0,agents:p.agents||[],seen:p.seen||new Date().toISOString(),price:p.price||'',size:p.size||'',notes:p.notes||'',excl_on:p.exclOn||false,excl_from:p.exclFrom||'',excl_to:p.exclTo||''})
+        body:JSON.stringify({addr:p.addr,cnt:p.cnt||0,agents:p.agents||[],seen:p.seen||new Date().toISOString(),price:p.price||'',size:p.size||'',notes:p.notes||'',excl_on:p.exclOn||false,excl_from:p.exclFrom||'',excl_to:p.exclTo||'',prop_type:p.propType||'דירה',city:p.city||'ירושלים',gush:p.gush||'',chelka:p.chelka||'',tat_chelka:p.tatChelka||''})
       });
     }
   }catch(e){console.log('props sync err',e);}
@@ -3371,7 +3430,7 @@ async function loadPropsFromSupa(){
     if(rows&&!rows.error&&rows.length){
       rows.forEach(r=>{
         const idx=propsDB.findIndex(p=>p.addr===r.addr);
-        const mapped={addr:r.addr,cnt:r.cnt||0,agents:r.agents||[],seen:r.seen,price:r.price||'',size:r.size||'',notes:r.notes||'',exclOn:r.excl_on||false,exclFrom:r.excl_from||'',exclTo:r.excl_to||''};
+        const mapped={addr:r.addr,cnt:r.cnt||0,agents:r.agents||[],seen:r.seen,price:r.price||'',size:r.size||'',notes:r.notes||'',exclOn:r.excl_on||false,exclFrom:r.excl_from||'',exclTo:r.excl_to||'',propType:r.prop_type||'דירה',city:r.city||'ירושלים',gush:r.gush||'',chelka:r.chelka||'',tatChelka:r.tat_chelka||''};
         if(idx>=0) Object.assign(propsDB[idx],mapped);
         else propsDB.push(mapped);
       });
@@ -3447,8 +3506,8 @@ function exportExcel(type){
     rows=clientsDB.map(c=>[c.name,c.id||'',c.phone]);
     filename='Kings_לקוחות.csv';
   } else if(type==='properties'){
-    headers=['כתובת','מחיר','גודל מ"ר','הערות','שימוש','בלעדיות','מ','עד'];
-    rows=propsDB.map(p=>[p.addr,p.price||'',p.size||'',p.notes||'',p.cnt||0,p.exclOn?'כן':'לא',p.exclFrom||'',p.exclTo||'']);
+    headers=['כתובת','סוג נכס','עיר','מחיר','גודל מ"ר','הערות','גוש','חלקה','תת חלקה','שימוש','בלעדיות','מ','עד'];
+    rows=propsDB.map(p=>[p.addr,p.propType||'דירה',p.city||'ירושלים',p.price||'',p.size||'',p.notes||'',p.gush||'',p.chelka||'',p.tatChelka||'',p.cnt||0,p.exclOn?'כן':'לא',p.exclFrom||'',p.exclTo||'']);
     filename='Kings_נכסים.csv';
   } else if(type==='agents'){
     headers=['שם','שם באנגלית','הסכמים','לקוחות','נכסים'];
@@ -3677,7 +3736,7 @@ function renderProperties(){
     <div class="lrow">
       <label style="display:flex;align-items:flex-start;gap:8px;flex:1;cursor:pointer">
         <input type="checkbox" style="margin-top:3px;accent-color:var(--gold)" onchange="toggleSelect('property','${p.addr.replace(/'/g,"\\'")}',this)">
-        <div><h4>📍 ${p.addr}</h4>${p.price?`<p>💰 ${p.price}</p>`:''}${p.size?`<p>📐 ${p.size} מ"ר</p>`:''}${p.exclOn?`<p style="color:#6A1B9A;font-size:10px">✦ בלעדיות</p>`:''}<p style="font-size:10px;color:var(--gray)">שימוש: ${p.cnt||0} פעם</p></div>
+        <div><h4>📍 ${p.addr}</h4><p style="font-size:10px;color:var(--gray)">${p.propType||'דירה'} · ${p.city||'ירושלים'}</p>${p.price?`<p>💰 ${p.price}</p>`:''}${p.size?`<p>📐 ${p.size} מ"ר</p>`:''}${p.exclOn?`<p style="color:#6A1B9A;font-size:10px">✦ בלעדיות</p>`:''}<p style="font-size:10px;color:var(--gray)">שימוש: ${p.cnt||0} פעם</p></div>
       </label>
       <div class="lmeta" style="display:flex;flex-direction:column;gap:4px">
         <button class="btn-edit-sm" onclick="openEditProp('${p.addr.replace(/'/g,"\\'")}')">✏️</button>
