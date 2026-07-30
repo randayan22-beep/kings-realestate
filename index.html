@@ -92,7 +92,7 @@ body{font-family:'Heebo',sans-serif;background:var(--light-gray);color:var(--bla
 /* SIGN */
 .sign-body{padding:16px 14px;flex:1}
 .pill{background:var(--gold-pale);border:1px solid rgba(184,150,62,0.25);border-radius:20px;padding:3px 10px;font-size:10px;color:#333;display:inline-block;margin:2px}
-.contract-box{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:16px 14px;margin-bottom:14px;max-height:220px;overflow-y:auto;font-size:11px;line-height:1.85;color:var(--gray)}
+.contract-box{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:16px 14px;margin-bottom:14px;max-height:220px;overflow-y:auto;font-size:15px;line-height:1.9;color:var(--gray)}
 .contract-box.en{direction:ltr;text-align:left}
 .sig-wrap{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px}
 .sig-label{font-size:11px;color:var(--gray);margin-bottom:8px;font-weight:500}
@@ -2684,14 +2684,14 @@ function loadRemoteSign(data){
       <div style="text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #E1BEE7">
         <div style="font-size:13px;font-weight:700;color:#6A1B9A">✦ ${data.lang==='en'?'Exclusivity Agreement':'הסכם בלעדיות לשיווק נכס'}</div>
       </div>
-      <div style="white-space:pre-line;font-size:11px">${(data.exclContractText||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+      <div style="white-space:pre-line;font-size:15px;line-height:1.9">${(data.exclContractText||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
       <div style="background:#F3E5F5;border:1px solid rgba(106,27,154,0.3);border-radius:6px;padding:8px 12px;margin-top:10px;font-size:10px;color:#6A1B9A">⚠️ ${data.lang==='en'?'This signature applies to both documents — the brokerage agreement and the exclusivity agreement.':'החתימה הינה נוגעת לשני המסמכים — הסכם התיווך והסכם הבלעדיות כאחד.'}</div>
     </div>` : '';
   ct.innerHTML=`<div style="text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--gold-pale)">
     <div style="font-family:'Playfair Display',serif;font-size:14px;color:var(--gold)">Kings Jerusalem Luxury Real Estate</div>
     <div style="font-size:12px;font-weight:600;margin-top:4px">${data.typeName}</div>
     <div style="font-size:10px;color:var(--gray)">תאריך: ${data.dateStr}</div>
-  </div><div style="white-space:pre-line;font-size:11px">${mainText.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>${exclBlock}`;
+  </div><div style="white-space:pre-line;font-size:15px;line-height:1.9">${mainText.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>${exclBlock}`;
   showScreen('screen-remote');
   setTimeout(()=>setupRemoteCanvas(),200);
 }
