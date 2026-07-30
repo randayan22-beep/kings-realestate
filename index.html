@@ -49,8 +49,8 @@ body{font-family:'Heebo',sans-serif;background:var(--light-gray);color:var(--bla
 .type-card:hover::before,.type-card:active::before{opacity:1}
 .type-card:hover,.type-card:active{border-color:var(--gold);background:var(--gold-pale)}
 .type-icon{font-size:20px;margin-bottom:6px}
-.type-name{font-size:12px;font-weight:600;color:var(--black);margin-bottom:2px}
-.type-desc{font-size:10px;color:var(--gray)}
+.type-name{font-size:13px;font-weight:600;color:var(--black);margin-bottom:2px}
+.type-desc{font-size:11px;color:var(--gray)}
 .type-card.full{grid-column:span 2}
 
 /* FORM */
@@ -58,17 +58,17 @@ body{font-family:'Heebo',sans-serif;background:var(--light-gray);color:var(--bla
 .fcard{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:18px 14px;margin-bottom:14px;box-shadow:var(--shadow)}
 .fcard-title{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--gold-pale)}
 .fgroup{margin-bottom:12px;position:relative}
-.flabel{font-size:11px;color:var(--gray);margin-bottom:4px;font-weight:500;display:block}
-.finput{width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:14px;color:var(--black);background:var(--white);-webkit-appearance:none;transition:border-color 0.2s}
+.flabel{font-size:12.5px;color:var(--gray);margin-bottom:4px;font-weight:500;display:block}
+.finput{width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:15.5px;color:var(--black);background:var(--white);-webkit-appearance:none;transition:border-color 0.2s}
 .finput:focus{outline:none;border-color:var(--gold)}.finput::placeholder{color:#BBBBBB}
-.ftextarea{width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--black);background:var(--white);resize:vertical;min-height:72px;line-height:1.5;transition:border-color 0.2s}
+.ftextarea{width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:14px;color:var(--black);background:var(--white);resize:vertical;min-height:72px;line-height:1.5;transition:border-color 0.2s}
 .ftextarea:focus{outline:none;border-color:var(--gold)}
 .fee-row{display:flex;gap:8px;align-items:center}.fee-row .finput{flex:1}.fee-unit{font-size:12px;color:var(--gray);white-space:nowrap}
 .vat-row{display:flex;align-items:center;gap:8px;margin-top:6px;padding:8px 10px;background:var(--light-gray);border-radius:7px;cursor:pointer}
 .vat-cb{width:18px;height:18px;accent-color:var(--gold);cursor:pointer;flex-shrink:0}
-.vat-lbl{font-size:12px;color:var(--gray);cursor:pointer;user-select:none}
+.vat-lbl{font-size:13px;color:var(--gray);cursor:pointer;user-select:none}
 .excl-toggle{display:flex;align-items:center;justify-content:space-between;background:var(--gold-pale);border:1px solid rgba(184,150,62,0.3);border-radius:8px;padding:11px 14px;margin-bottom:12px;cursor:pointer}
-.excl-toggle-lbl{font-size:13px;font-weight:500}
+.excl-toggle-lbl{font-size:14px;font-weight:500}
 .tog{width:42px;height:22px;background:#CCC;border-radius:11px;position:relative;transition:background 0.2s;flex-shrink:0}
 .tog.on{background:var(--gold)}.tog::after{content:'';position:absolute;top:3px;right:3px;width:16px;height:16px;background:white;border-radius:50%;transition:transform 0.2s}
 .tog.on::after{transform:translateX(-20px)}
@@ -92,7 +92,7 @@ body{font-family:'Heebo',sans-serif;background:var(--light-gray);color:var(--bla
 /* SIGN */
 .sign-body{padding:16px 14px;flex:1}
 .pill{background:var(--gold-pale);border:1px solid rgba(184,150,62,0.25);border-radius:20px;padding:3px 10px;font-size:10px;color:#333;display:inline-block;margin:2px}
-.contract-box{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:16px 14px;margin-bottom:14px;max-height:220px;overflow-y:auto;font-size:15px;line-height:1.9;color:var(--gray)}
+.contract-box{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:16px 14px;margin-bottom:14px;max-height:260px;overflow-y:auto;font-size:16.5px;line-height:1.95;color:var(--gray)}
 .contract-box.en{direction:ltr;text-align:left}
 .sig-wrap{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px}
 .sig-label{font-size:11px;color:var(--gray);margin-bottom:8px;font-weight:500}
@@ -309,6 +309,11 @@ if('caches' in window){
           <div style="font-size:11px;color:#999;margin-top:8px">💡 אתה יכול לערוך את שם השכונה המוצג ללקוח</div>
         </div>
       </div>
+      <!-- Multi-asset: additional properties on the same agreement -->
+      <div id="multi-asset-section" style="margin-top:10px">
+        <div id="extra-assets"></div>
+        <button type="button" onclick="addAssetRow()" style="width:100%;background:var(--gold-pale);border:1px dashed var(--gold);border-radius:8px;padding:10px;font-family:'Heebo',sans-serif;font-size:13px;color:#7A5010;cursor:pointer;font-weight:600">➕ הוספת נכס</button>
+      </div>
       <!-- New property inline fields - shown when new address typed -->
       <div id="new-prop-fields" style="display:none">
         <div style="background:var(--gold-pale);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:11px;color:#7A5010">✨ נכס חדש — מלא פרטים (יישמר במאגר)</div>
@@ -492,7 +497,7 @@ if('caches' in window){
         <div class="fcard-title" style="margin-bottom:0;border-bottom:none;padding-bottom:0">הסכם תיווך</div>
         <button onclick="resetContractText()" style="font-size:10px;color:var(--gray);background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-family:'Heebo',sans-serif">↺ איפוס</button>
       </div>
-      <textarea id="contract-text" style="width:100%;min-height:220px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:14px;line-height:1.85;color:var(--gray);resize:vertical;direction:rtl" dir="rtl"></textarea>
+      <textarea id="contract-text" style="width:100%;min-height:260px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:15.5px;line-height:1.9;color:var(--gray);resize:vertical;direction:rtl" dir="rtl"></textarea>
     </div>
     <!-- Exclusivity contract — shown only when excl is on -->
     <div class="fcard" id="excl-contract-card" style="display:none;padding:14px">
@@ -500,7 +505,7 @@ if('caches' in window){
         <div class="fcard-title" style="margin-bottom:0;border-bottom:none;padding-bottom:0;color:#6A1B9A">✦ הסכם בלעדיות</div>
         <button onclick="resetExclText()" style="font-size:10px;color:var(--gray);background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;cursor:pointer;font-family:'Heebo',sans-serif">↺ איפוס</button>
       </div>
-      <textarea id="excl-contract-text" style="width:100%;min-height:260px;border:1px solid rgba(106,27,154,0.3);border-radius:8px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:14px;line-height:1.85;color:var(--gray);resize:vertical;direction:rtl" dir="rtl"></textarea>
+      <textarea id="excl-contract-text" style="width:100%;min-height:260px;border:1px solid rgba(106,27,154,0.3);border-radius:8px;padding:10px 12px;font-family:'Heebo',sans-serif;font-size:15.5px;line-height:1.9;color:var(--gray);resize:vertical;direction:rtl" dir="rtl"></textarea>
     </div>
     <div class="sig-wrap">
       <div id="dual-sig-note" style="display:none;background:#F3E5F5;border:1px solid rgba(106,27,154,0.3);border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:11px;color:#6A1B9A;line-height:1.5">⚠️ <strong>שים לב:</strong> החתימה הינה נוגעת לשני המסמכים — הסכם התיווך והסכם הבלעדיות כאחד.</div>
@@ -934,22 +939,59 @@ function updateNeighborhoodPreview() {
   const hideAddrCheckbox = document.getElementById('f-hide-addr');
   const preview = document.getElementById('neighborhood-preview');
   const addr = document.getElementById('f-addr').value.trim();
-  
-  if (!addr) {
+  const isHidden = hideAddrCheckbox ? hideAddrCheckbox.checked : false;
+
+  // Primary property preview
+  if (!addr || !isHidden) {
     preview.style.display = 'none';
-    return;
+  } else {
+    preview.style.display = 'block';
+    const neighborhood = getNeighborhoodFromAddress(addr);
+    document.getElementById('neighborhood-display').textContent = neighborhood;
+    const edit = document.getElementById('f-neighborhood-edit');
+    if (edit && !edit.value.trim()) edit.value = neighborhood;
   }
-  
-  const isHidden = hideAddrCheckbox.checked;
-  if (!isHidden) {
-    preview.style.display = 'none';
-    return;
-  }
-  
-  preview.style.display = 'block';
-  const neighborhood = getNeighborhoodFromAddress(addr);
-  document.getElementById('neighborhood-display').textContent = neighborhood;
-  document.getElementById('f-neighborhood-edit').value = neighborhood;
+
+  // Extra-asset rows: reveal each row's neighbourhood editor when hiding is on
+  document.querySelectorAll('#extra-assets .extra-asset-row').forEach(row=>{
+    const wrap=row.querySelector('.asset-hood-wrap');
+    const inp=row.querySelector('.asset-addr');
+    const hoodInp=row.querySelector('.asset-hood');
+    if(wrap) wrap.style.display = isHidden ? 'flex' : 'none';
+    if(isHidden && hoodInp && !hoodInp.value.trim() && inp && inp.value.trim()){
+      hoodInp.value = getNeighborhoodFromAddress(inp.value.trim());
+    }
+  });
+}
+
+// ── Multi-asset rows ("הוספת נכס") ──
+let _assetSeq = 0;
+function addAssetRow(prefill){
+  _assetSeq++;
+  const idx=_assetSeq;
+  const wrap=document.createElement('div');
+  wrap.className='extra-asset-row';
+  wrap.id='asset-row-'+idx;
+  wrap.style.cssText='background:#FAF7EF;border:1px solid var(--gold-pale);border-radius:8px;padding:10px;margin-bottom:8px';
+  wrap.innerHTML=
+    '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">'
+    +'<span style="font-size:11px;color:var(--gold);font-weight:600;flex:1">נכס נוסף</span>'
+    +'<button type="button" onclick="removeAssetRow('+idx+')" title="הסר נכס" style="background:#FDECEA;border:1px solid #F5B7B1;border-radius:6px;width:28px;height:28px;font-size:18px;line-height:1;color:#C0392B;cursor:pointer">−</button>'
+    +'</div>'
+    +'<div class="ac-wrap">'
+    +'<input class="finput asset-addr" id="asset-addr-'+idx+'" type="text" placeholder="רחוב, מספר, עיר" autocomplete="off" oninput="acAddr(this.value,\'asset-addr-'+idx+'\',\'asset-ac-'+idx+'\'); updateNeighborhoodPreview();" onfocus="acAddr(this.value,\'asset-addr-'+idx+'\',\'asset-ac-'+idx+'\')">'
+    +'<div class="ac-dd" id="asset-ac-'+idx+'"></div>'
+    +'</div>'
+    +'<div class="asset-hood-wrap" style="display:none;align-items:center;gap:6px;margin-top:6px;font-size:11px;color:#6A1B9A">'
+    +'🔒 יוצג ללקוח: <input type="text" class="asset-hood" id="asset-hood-'+idx+'" placeholder="שכונה" style="flex:1;border:1px solid #CE93D8;border-radius:4px;padding:5px 8px;font-family:\'Heebo\',sans-serif;font-size:12px">'
+    +'</div>';
+  document.getElementById('extra-assets').appendChild(wrap);
+  if(prefill){ const el=document.getElementById('asset-addr-'+idx); if(el) el.value=prefill; }
+  updateNeighborhoodPreview();
+}
+function removeAssetRow(idx){
+  const el=document.getElementById('asset-row-'+idx);
+  if(el) el.remove();
 }
 let AGENTS = [
   {name:'גולדי',nameEn:'Goldi',phone:'',id:'',license:''},
@@ -988,6 +1030,15 @@ function makeSignLink(a){
   const params = new URLSearchParams({id:a.id});
   if(a.hideAddr) params.set('ha','1');
   if(a.displayNeighborhood) params.set('dn',a.displayNeighborhood);
+  // Multi-asset agreements aren't persisted in Supabase (no column for them), so
+  // carry the extra properties in the link itself — the client's device uses this
+  // to render every property (masked while signing, revealed in the signed PDF).
+  if(a.assets && a.assets.length>1){
+    try{
+      const packed = JSON.stringify(a.assets.map(x=>({a:x.addr||'',h:x.hood||'',x:x.hide?1:0})));
+      params.set('as', btoa(unescape(encodeURIComponent(packed))));
+    }catch(e){ console.log('assets encode err',e); }
+  }
   return `${APP_URL}?${params.toString()}`;
 }
 
@@ -1567,6 +1618,8 @@ function startForm(type){
   document.getElementById('fee-rent').style.display=hasRent?'block':'none';
   document.getElementById('card-excl').style.display=hasExcl?'block':'none';
   document.getElementById('hide-addr-section').style.display=hasHideAddr?'block':'none';
+  const masEl=document.getElementById('multi-asset-section'); if(masEl) masEl.style.display=hasHideAddr?'block':'none';
+  const extraEl=document.getElementById('extra-assets'); if(extraEl) extraEl.innerHTML='';
   if(hasSale) document.getElementById('f-sale-fee').value='2';
   if(hasRent) document.getElementById('f-rent-fee').value='1';
   ['f-name','f-id','f-phone','f-addr','f-excl-from','f-excl-to','f-notes','f-hide-addr','f-neighborhood-edit','f-prop-price','f-prop-size','f-prop-notes','f-prop-gush','f-prop-chelka','f-prop-tatchelka'].forEach(id=>{
@@ -1631,11 +1684,31 @@ function getFormData(){
   const exclToVal = (exclDurVal === 'custom')
     ? document.getElementById('f-excl-to').value   // manual entry mode
     : (computedExclTo || document.getElementById('f-excl-to').value); // fallback to field if computation failed
+  // ── Collect all assets (primary property + any "הוספת נכס" rows) ──
+  const hideCb = document.getElementById('f-hide-addr');
+  const primaryHide = hideCb ? hideCb.checked : false;
+  const primaryAddr = document.getElementById('f-addr').value.trim();
+  const primaryHood = primaryHide
+    ? (document.getElementById('f-neighborhood-edit').value.trim() || getNeighborhoodFromAddress(primaryAddr))
+    : '';
+  const assets = [{addr:primaryAddr, hide:primaryHide, hood:primaryHood}];
+  document.querySelectorAll('#extra-assets .extra-asset-row').forEach(row=>{
+    const inp=row.querySelector('.asset-addr');
+    if(!inp) return;
+    const av=inp.value.trim();
+    if(!av) return;
+    const hoodInp=row.querySelector('.asset-hood');
+    const hv = primaryHide ? ((hoodInp&&hoodInp.value.trim())||getNeighborhoodFromAddress(av)) : '';
+    assets.push({addr:av, hide:primaryHide, hood:hv});
+  });
   return {
     name: document.getElementById('f-name').value.trim(),
     id:   document.getElementById('f-id').value.trim(),
     phone:document.getElementById('f-phone').value.trim(),
-    addr: document.getElementById('f-addr').value.trim(),
+    addr: primaryAddr,
+    assets,
+    hideAddr: primaryHide,
+    displayNeighborhood: primaryHood,
     saleFee: document.getElementById('f-sale-fee').value!=='' ? document.getElementById('f-sale-fee').value : null,
     rentFee: document.getElementById('f-rent-fee').value!=='' ? document.getElementById('f-rent-fee').value : null,
     exclFrom: exclFromVal,
@@ -1653,11 +1726,36 @@ function feeStr(amt,type,l,noVat){
   return hasAmt ? `${amt} חודשי שכ״ד${plus}` : `חודש שכ״ד אחד${plus}`;
 }
 
+// Returns the address to display for one asset. When `masked` (i.e. during the
+// signing view) and the asset is flagged hidden, the neighbourhood is shown
+// instead of the real address. After signing (masked=false) the real address is
+// always revealed.
+function assetShown(a,l,masked){
+  if(!a) return '';
+  return (masked && a.hide) ? (a.hood || (l==='en'?'Neighborhood':'שכונה')) : (a.addr||'');
+}
+// Builds the "Property:" header line of a contract. Supports one or many assets.
+// d.assets = [{addr,hide,hood}], d.masked = hide flag, falls back to d.addr.
+function buildPropLine(l,d){
+  const masked=!!d.masked;
+  let assets = (d.assets && d.assets.length)
+    ? d.assets
+    : [{addr:d.addr, hide:!!d.hideAddr, hood:d.displayNeighborhood||''}];
+  assets = assets.filter(a=>a && (a.addr||'').trim());
+  if(assets.length<=1){
+    const a=assets[0]||{addr:(d.addr||''),hide:false,hood:''};
+    const shown=assetShown(a,l,masked);
+    const pr=d.propPrice?(l==='en'?' | Asking Price: ₪'+d.propPrice:' | מחיר מבוקש: ₪'+d.propPrice):'';
+    return (l==='en'?`Property: ${shown}${pr}\n\n`:`נכס: ${shown}${pr}\n\n`);
+  }
+  const header=l==='en'?'Properties:':'הנכסים:';
+  const lines=assets.map((a,i)=>`${i+1}. ${assetShown(a,l,masked)}`).join('\n');
+  return `${header}\n${lines}\n\n`;
+}
+
 function contractText(type,l,d){
-  // Header line with property address and price
-  const propLine = l==='en'
-    ? `Property: ${d.addr}${d.propPrice?' | Asking Price: ₪'+d.propPrice:''}\n\n`
-    : `נכס: ${d.addr}${d.propPrice?' | מחיר מבוקש: ₪'+d.propPrice:''}\n\n`;
+  // Header line with property address(es) and price (single- or multi-asset aware)
+  const propLine = buildPropLine(l,d);
   const fs=feeStr(d.saleFee,'sale',l,d.vatSale);
   const fr=feeStr(d.rentFee,'rent',l,d.vatRent);
   const nb=d.notes?(l==='en'?'\n\nNotes: ':'\n\nהערות: ')+d.notes:'';
@@ -1769,15 +1867,18 @@ function toSign(){
   const d=getFormData();
   if(!d.name||!d.phone||!d.addr){alert('נא למלא שם, טלפון וכתובת נכס');return;}
   const fn=FNAMES[formType][lang==='en'?'en':'he'];
+  const assetPills=(d.assets&&d.assets.length?d.assets:[{addr:d.addr,hide:false,hood:''}])
+    .map(a=>`<span class="pill">📍 ${a.hide?(a.hood||'שכונה'):a.addr}</span>`).join('');
   document.getElementById('sign-summary').innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:3px">
     <span class="pill">👤 ${d.name}</span><span class="pill">🪪 ${d.id||'—'}</span><span class="pill">📞 ${d.phone}</span>
-    <span class="pill">📍 ${d.addr}</span><span class="pill">📄 ${fn}</span>
+    ${assetPills}<span class="pill">📄 ${fn}</span>
     ${d.saleFee!==null&&d.saleFee!==''?`<span class="pill">💰 ${d.saleFee}%${d.vatSale?' כולל מע״מ':' + מע״מ'}</span>`:''}
     ${d.rentFee!==null&&d.rentFee!==''?`<span class="pill">💰 ${d.rentFee} חודש${d.vatRent?' כולל מע״מ':' + מע״מ'}</span>`:''}
     ${d.exclFrom?`<span class="pill" style="background:#F3E5F5;color:#6A1B9A">✦ בלעדיות ${d.exclFrom}→${d.exclTo}</span>`:''}
   </div>`;
-  // Main contract
-  const rawText = contractText(formType, lang, d);
+  // Main contract — masked: any address flagged "hidden" shows only the
+  // neighbourhood until the client signs (revealed afterwards in the PDF).
+  const rawText = contractText(formType, lang, {...d, masked:true});
   _originalContractText = rawText;
   const ct = document.getElementById('contract-text');
   ct.value = rawText;
@@ -2172,12 +2273,14 @@ function openAgreementView(id, returnTo){
     <div class="drow"><span class="dlbl">ת.ז.</span><span class="dval">${a.clientId||'—'}</span></div>
     <div class="drow"><span class="dlbl">טלפון</span><span class="dval">${a.clientPhone}</span></div>
     <div class="drow"><span class="dlbl">נכס</span><span class="dval">${a.addr}${a.hideAddr?` <span style="background:#F3E5F5;color:#6A1B9A;padding:2px 6px;border-radius:4px;font-size:10px;margin-right:6px">🔒 מוסתר מהלקוח - ${a.displayNeighborhood||'שכונה'}</span>`:''}</span></div>
+    ${(a.assets&&a.assets.length>1)?`<div class="drow"><span class="dlbl">נכסים נוספים</span><span class="dval">${a.assets.slice(1).map(x=>x.addr).join('<br>')}</span></div>`:''}
     ${saleFeeTxt?`<div class="drow"><span class="dlbl">עמלת מכירה</span><span class="dval">${saleFeeTxt}</span></div>`:''}
     ${rentFeeTxt?`<div class="drow"><span class="dlbl">עמלת שכ״ד</span><span class="dval">${rentFeeTxt}</span></div>`:''}
     ${a.excl?`<div class="drow"><span class="dlbl">בלעדיות</span><span class="dval">${a.exclFrom} → ${a.exclTo}</span></div>`:''}`;
 
   // Contract text — editable textarea with correct fee values substituted
   const d={name:a.clientName,id:a.clientId,phone:a.clientPhone,addr:a.addr,
+           assets:a.assets||null,
            saleFee:a.saleFee,rentFee:a.rentFee,vatSale:a.vatSale,vatRent:a.vatRent,notes:a.notes||'',exclFrom:a.exclFrom||'',exclTo:a.exclTo||'',propPrice:a.propPrice||''};
   const rawText = a.customText || contractText(a.type, a.lang||'he', d);
   const hasExclView = a.excl && a.exclContractText;
@@ -2580,6 +2683,10 @@ async function checkRemoteSign(){
   const agId=params.get('id');
   const hideAddrParam=params.get('ha')==='1';
   const displayNeighborhoodParam=params.get('dn')||'';
+  // Multi-asset payload carried in the link (see makeSignLink)
+  let assetsParam=null;
+  const asRaw=params.get('as');
+  if(asRaw){ try{ assetsParam=JSON.parse(decodeURIComponent(escape(atob(asRaw)))).map(x=>({addr:x.a||'',hood:x.h||'',hide:!!x.x})); }catch(e){ console.log('assets decode err',e); } }
   if(agId){
     // Show loading
     document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -2601,7 +2708,7 @@ async function checkRemoteSign(){
             addr:r.addr,propPrice:r.prop_price||'',saleFee:r.sale_fee,rentFee:r.rent_fee,vatSale:r.vat_sale,vatRent:r.vat_rent,
             notes:r.notes||'',lang:r.lang||'he',excl:r.excl,exclFrom:r.excl_from||'',exclTo:r.excl_to||'',
             exclContractText:r.excl_contract_text||'',customText:r.custom_text||'',
-            sig:r.signature,dateStr:r.date_str,hideAddr:r.hide_addr||hideAddrParam,displayNeighborhood:r.display_neighborhood||displayNeighborhoodParam};
+            sig:r.signature,dateStr:r.date_str,hideAddr:r.hide_addr||hideAddrParam,displayNeighborhood:r.display_neighborhood||displayNeighborhoodParam,assets:assetsParam};
           const nm=r.client_name||'';
           document.getElementById('screen-remote').innerHTML=`
             <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px;text-align:center;background:#F7F5F0">
@@ -2624,6 +2731,7 @@ async function checkRemoteSign(){
           exclContractText:r.excl_contract_text||'', customText:r.custom_text||'',
           agent:r.agent, agentEn:r.agent_en||'', dateStr:r.date_str,
           hideAddr:r.hide_addr||hideAddrParam||false, displayNeighborhood:r.display_neighborhood||displayNeighborhoodParam||'',
+          assets:assetsParam||null,
         };
         loadRemoteSign(data);
       } else {
@@ -2661,19 +2769,25 @@ function loadRemoteSign(data){
   const submitBtn=document.getElementById('r-submit-btn');
   if(submitBtn)submitBtn.textContent=isEn?'Confirm & Sign →':'אשר וחתום ←';
   
-  // Display address or neighborhood based on hideAddr flag
-  const displayText = data.hideAddr ? (`📍 ${data.displayNeighborhood||'שכונה'} · ${data.dateStr}`) : (`📍 ${data.addr} · ${data.dateStr}`);
-  document.getElementById('r-meta').textContent=displayText;
+  // Display address or neighborhood based on hideAddr flag (+ count if multi-asset)
+  const firstLabel = data.hideAddr ? (data.displayNeighborhood||'שכונה') : data.addr;
+  const moreTxt = (data.assets && data.assets.length>1) ? ` (+${data.assets.length-1})` : '';
+  document.getElementById('r-meta').textContent=`📍 ${firstLabel}${moreTxt} · ${data.dateStr}`;
   
   // Pre-fill known fields
   if(data.clientName) document.getElementById('r-name').value=data.clientName;
   if(data.clientPhone) document.getElementById('r-phone').value=data.clientPhone;
   if(data.clientId) document.getElementById('r-id').value=data.clientId;
   
-  // Show contract text — use neighborhood in address field if hideAddr is true
-  const displayAddr = data.hideAddr ? (data.displayNeighborhood||'שכונה') : data.addr;
+  // Build the masked contract for signing — hidden addresses show only the
+  // neighbourhood, and every asset is listed when the agreement has several.
+  const rAssets = (data.assets && data.assets.length)
+    ? data.assets
+    : [{addr:data.addr, hide:!!data.hideAddr, hood:data.displayNeighborhood||''}];
   const d={name:data.clientName,id:data.clientId,phone:data.clientPhone,
-            addr:displayAddr,saleFee:data.saleFee,rentFee:data.rentFee,
+            addr:data.addr, assets:rAssets, masked:true,
+            hideAddr:!!data.hideAddr, displayNeighborhood:data.displayNeighborhood||'',
+            saleFee:data.saleFee,rentFee:data.rentFee,
             vatSale:data.vatSale,vatRent:data.vatRent,exclFrom:data.exclFrom||'',exclTo:data.exclTo||'',notes:data.notes||''};
   const ct=document.getElementById('r-contract');
   ct.className='contract-box'+(data.lang==='en'?' en':'');
@@ -2684,14 +2798,14 @@ function loadRemoteSign(data){
       <div style="text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #E1BEE7">
         <div style="font-size:13px;font-weight:700;color:#6A1B9A">✦ ${data.lang==='en'?'Exclusivity Agreement':'הסכם בלעדיות לשיווק נכס'}</div>
       </div>
-      <div style="white-space:pre-line;font-size:15px;line-height:1.9">${(data.exclContractText||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+      <div style="white-space:pre-line;font-size:16.5px;line-height:1.95">${(data.exclContractText||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
       <div style="background:#F3E5F5;border:1px solid rgba(106,27,154,0.3);border-radius:6px;padding:8px 12px;margin-top:10px;font-size:10px;color:#6A1B9A">⚠️ ${data.lang==='en'?'This signature applies to both documents — the brokerage agreement and the exclusivity agreement.':'החתימה הינה נוגעת לשני המסמכים — הסכם התיווך והסכם הבלעדיות כאחד.'}</div>
     </div>` : '';
   ct.innerHTML=`<div style="text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--gold-pale)">
     <div style="font-family:'Playfair Display',serif;font-size:14px;color:var(--gold)">Kings Jerusalem Luxury Real Estate</div>
     <div style="font-size:12px;font-weight:600;margin-top:4px">${data.typeName}</div>
     <div style="font-size:10px;color:var(--gray)">תאריך: ${data.dateStr}</div>
-  </div><div style="white-space:pre-line;font-size:15px;line-height:1.9">${mainText.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>${exclBlock}`;
+  </div><div style="white-space:pre-line;font-size:16.5px;line-height:1.95">${mainText.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>${exclBlock}`;
   showScreen('screen-remote');
   setTimeout(()=>setupRemoteCanvas(),200);
 }
@@ -2747,6 +2861,7 @@ async function submitRemote(){
     // Preserve exclContractText and customText from remote data
     agreements[idx].exclContractText=data.exclContractText||'';
     agreements[idx].customText=data.customText||'';
+    if(data.assets && data.assets.length) agreements[idx].assets=data.assets;
   } else {
     // Add to local if not exists (different device)
     agreements.push({
@@ -2757,6 +2872,7 @@ async function submitRemote(){
       vatSale:data.vatSale, vatRent:data.vatRent, notes:data.notes||'',
       lang:data.lang||'he', excl:data.excl, exclFrom:data.exclFrom||'', exclTo:data.exclTo||'',
       exclContractText:data.exclContractText||'', customText:data.customText||'',
+      assets:data.assets||null,
       sig, date:new Date().toISOString(), dateStr:new Date().toLocaleDateString('he-IL'),
       pendingSign:false,
     });
@@ -2790,6 +2906,7 @@ async function submitRemote(){
     vatSale:data.vatSale, vatRent:data.vatRent, notes:data.notes||'',
     lang:data.lang||'he', excl:data.excl, exclFrom:data.exclFrom||'', exclTo:data.exclTo||'',
     exclContractText:data.exclContractText||'', customText:data.customText||'',
+    assets:data.assets||null,
     sig, dateStr:new Date().toLocaleDateString('he-IL'),
   };
   window._clientSignedAg = clientAg;
@@ -2858,8 +2975,14 @@ async function submitAgreement(requireSig=true){
   const sig=sigDrawn ? document.getElementById('sig-c').toDataURL('image/png') : '';
   const d=getFormData();
   if(!d.name||!d.phone||!d.addr){alert('נא למלא שם, טלפון וכתובת נכס');return;}
-  // Use edited contract text if modified
-  const editedText = document.getElementById('contract-text')?.value || contractText(formType,lang,d);
+  // Use edited contract text if modified. The signing view is "masked" (hidden
+  // addresses show only the neighbourhood); the stored/PDF version is "plain"
+  // (real addresses revealed). If the agent never edited the text, we store no
+  // customText so the PDF regenerates from the plain (revealed) version.
+  const signingText = contractText(formType,lang,{...d,masked:true});
+  const plainText   = contractText(formType,lang,{...d,masked:false});
+  const editedRaw   = document.getElementById('contract-text')?.value;
+  const editedText  = (editedRaw!==undefined && editedRaw!==null && editedRaw!=='') ? editedRaw : plainText;
   const hasExclData = exclOn && d.exclFrom && d.exclTo;
   const editedExclText = hasExclData ? (document.getElementById('excl-contract-text')?.value || exclAgreementText(d, agent?agent.name:'')) : null;
   const now=new Date();
@@ -2902,10 +3025,11 @@ async function submitAgreement(requireSig=true){
     propPrice:(()=>{const pi=propsDB.findIndex(p=>p.addr.toLowerCase()===d.addr.toLowerCase());return pi>=0?propsDB[pi].price||'':'';})(),
     sig,date:now.toISOString(),dateStr:now.toLocaleDateString('he-IL'),
     pendingSign:!sig,
-    customText: editedText !== contractText(formType,lang,d) ? editedText : null,
+    customText: (editedText !== signingText && editedText !== plainText) ? editedText : null,
     exclContractText: editedExclText || null,
     hideAddr:hideAddressFlag,
     displayNeighborhood:neighborhoodText,
+    assets: (d.assets && d.assets.length) ? d.assets : null,
   };
   agreements.push(a);
   // Client key already computed above (clientKey) — use it consistently
@@ -2939,7 +3063,8 @@ async function submitAgreement(requireSig=true){
   if(waBtn2){waBtn2.href=`https://wa.me/${ph}?text=${msg}`;waBtn2.style.opacity='1';waBtn2.style.pointerEvents='auto';}
   const okSub2=document.getElementById('ok-sub');
   const displayedAddr = a.hideAddr ? (a.displayNeighborhood || 'שכונה') : d.addr;
-  if(okSub2) okSub2.innerHTML=`ההסכם עבור <strong>${d.name}</strong> נשמר ✅<br>נכס: ${displayedAddr}${!sig?'<br><span style="color:#E65100;font-size:11px">⏳ ממתין לחתימה</span>':''}${a.hideAddr?'<br><span style="color:#6A1B9A;font-size:11px">🔒 כתובת מוסתרת מהלקוח</span>':''}`;
+  const extraCount = (a.assets && a.assets.length>1) ? ` <span style="color:var(--gold)">(+${a.assets.length-1} נכסים)</span>` : '';
+  if(okSub2) okSub2.innerHTML=`ההסכם עבור <strong>${d.name}</strong> נשמר ✅<br>נכס: ${displayedAddr}${extraCount}${!sig?'<br><span style="color:#E65100;font-size:11px">⏳ ממתין לחתימה</span>':''}${a.hideAddr?'<br><span style="color:#6A1B9A;font-size:11px">🔒 כתובת מוסתרת מהלקוח</span>':''}`;
   }catch(err){
     console.error('submitAgreement crashed:', err);
     alert('שגיאה בשמירת ההסכם: '+err.message+'\n\nנא לנסות שוב או לפנות לתמיכה.');
@@ -3028,6 +3153,7 @@ function buildPDFHtml(a){
   const dir=en?'ltr':'rtl';
   const align=en?'left':'right';
   const d={name:a.clientName,id:a.clientId||'',phone:a.clientPhone,addr:a.addr,
+           assets:a.assets||null,
            saleFee:a.saleFee,rentFee:a.rentFee,vatSale:a.vatSale,vatRent:a.vatRent,
            notes:a.notes||'',exclFrom:a.exclFrom||'',exclTo:a.exclTo||'',propPrice:a.propPrice||''};
   const fn=FNAMES[a.type]?.[en?'en':'he']||a.typeName||'הסכם תיווך';
@@ -3078,7 +3204,7 @@ function buildPDFHtml(a){
       ${en?'<strong>Client Name:</strong>':'<strong>שם לקוח:</strong>'} ${a.clientName} &nbsp;&nbsp;
       ${en?'<strong>ID:</strong>':'<strong>ת.ז.:</strong>'} ${a.clientId||'—'} &nbsp;&nbsp;
       ${en?'<strong>Phone:</strong>':'<strong>טל׳:</strong>'} ${a.clientPhone}<br>
-      ${en?'<strong>Property:</strong>':'<strong>נכס:</strong>'} ${a.addr}<br>
+      ${en?'<strong>Property:</strong>':'<strong>נכס:</strong>'} ${(a.assets&&a.assets.length>1)?a.assets.map(x=>x.addr).join(' | '):a.addr}<br>
       ${(a.propPrice)?('<strong>'+(en?'Price':'מחיר')+':</strong> ₪'+a.propPrice+'<br>'):''}
       ${feeLines.length?feeLines.join(' &nbsp;&nbsp; ')+'<br>':''}
       ${en?'<strong>Agent:</strong>':'<strong>סוכן מטפל:</strong>'} ${en?(a.agentEn||a.agent):a.agent}
