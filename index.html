@@ -216,11 +216,21 @@ if('caches' in window){
       
     </div>
     <div class="login-card">
-      <div class="section-label">כניסה לסוכן</div>
-      <div class="agent-grid" id="agent-grid"></div>
+      <div id="agent-select-block">
+        <div class="section-label">כניסה לסוכן</div>
+        <div class="agent-grid" id="agent-grid"></div>
+      </div>
+      <div id="agent-pwd-block" style="display:none">
+        <div class="section-label" id="agent-pwd-greeting">כניסת סוכן</div>
+        <div id="agent-pwd-hint" style="font-size:12px;color:#B8963E;text-align:center;margin:-2px 0 10px;line-height:1.5">נא להזין תעודת זהות — באופן חד-פעמי<br><span style="font-size:11px;color:rgba(255,255,255,0.55)">זו הסיסמה שלך; לא תתבקש שוב במכשיר הזה</span></div>
+        <input type="password" inputmode="numeric" class="pwd-input" id="agent-pwd" placeholder="תעודת זהות" autocomplete="off" onkeydown="if(event.key==='Enter')verifyAgentPwd()">
+        <button class="btn-gold" onclick="verifyAgentPwd()">כניסה ←</button>
+        <div id="agent-pwd-err" style="color:#E57373;font-size:11px;text-align:center;margin-top:8px;display:none">תעודת זהות שגויה</div>
+        <button onclick="backToAgentSelect()" style="width:100%;margin-top:10px;background:none;border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:9px;font-family:'Heebo',sans-serif;font-size:12px;color:#aaa;cursor:pointer">← בחר סוכן אחר</button>
+      </div>
       <hr class="divider">
       <div class="section-label">כניסת מנהל</div>
-      <input type="password" class="pwd-input" id="mgr-pwd" placeholder="סיסמת מנהל" autocomplete="new-password" name="mgr-password">
+      <input type="password" class="pwd-input" id="mgr-pwd" placeholder="סיסמת מנהל" autocomplete="new-password" name="mgr-password" onkeydown="if(event.key==='Enter')loginMgr()">
       <button class="btn-gold" onclick="loginMgr()">כניסה כמנהל ←</button>
       <div id="pwd-err" style="color:#E57373;font-size:11px;text-align:center;margin-top:8px;display:none">סיסמה שגויה</div>
     </div>
@@ -231,7 +241,10 @@ if('caches' in window){
 <div class="screen" id="screen-dash">
   <div class="app-header">
     <div class="hlogo" style="display:flex;align-items:center;gap:8px"><img id="hdr-logo-img" style="height:52px;width:auto;mix-blend-mode:screen;filter:brightness(1.5) contrast(1.2)" src="" alt="Kings"></div>
-    <div class="hbadge" id="hdr-agent">סוכן</div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="hbadge" id="hdr-agent">סוכן</div>
+      <button onclick="logoutAgent()" title="החלף משתמש / יציאה" style="background:none;border:1px solid rgba(255,255,255,0.25);color:#bbb;border-radius:8px;padding:5px 10px;font-family:'Heebo',sans-serif;font-size:11px;cursor:pointer">יציאה</button>
+    </div>
   </div>
   <div class="dash-body">
     <div class="greeting" id="dash-greeting">שלום!</div>
@@ -433,7 +446,21 @@ if('caches' in window){
     <div class="fcard">
       <div class="fcard-title">פרטי הנכס</div>
       <div class="fgroup"><label class="flabel">כתובת הנכס *</label>
-        <div class="ac-wrap"><input class="finput" id="cb-addr" type="text" placeholder="רחוב, מספר, עיר" autocomplete="off" oninput="acAddrCollab(this.value)" onfocus="acAddrCollab(this.value)"><div class="ac-dropdown" id="ac-collab-addr"></div></div>
+        <div class="ac-wrap"><input class="finput" id="cb-addr" type="text" placeholder="רחוב, מספר, עיר" autocomplete="off" oninput="acAddrCollab(this.value); updateCollabNeighborhoodPreview();" onfocus="acAddrCollab(this.value)"><div class="ac-dropdown" id="ac-collab-addr"></div></div>
+      </div>
+      <div id="cb-hide-addr-section">
+        <div class="fgroup" style="display:flex;align-items:center;gap:10px">
+          <input type="checkbox" id="cb-hide-addr" style="width:18px;height:18px;cursor:pointer" onchange="updateCollabNeighborhoodPreview()">
+          <label for="cb-hide-addr" style="cursor:pointer;font-size:13px;flex:1">🔒 הסתר כתובת מהסוכן החותם (הצג רק שכונה)</label>
+        </div>
+        <div id="cb-neighborhood-preview" style="display:none;background:#F3E5F5;border:1px solid rgba(106,27,154,0.3);border-radius:6px;padding:12px;margin-top:8px;font-size:12px">
+          <div style="font-weight:600;color:#6A1B9A;margin-bottom:8px">👁️ מה שיוצג בחתימה:</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span id="cb-neighborhood-display" style="background:#fff;border:2px solid #CE93D8;border-radius:4px;padding:8px 12px;color:#6A1B9A;font-weight:600">שכונה</span>
+            <input type="text" id="cb-neighborhood-edit" placeholder="ערוך שכונה" style="flex:1;min-width:140px;border:1px solid #CE93D8;border-radius:4px;padding:8px 10px;font-family:'Heebo',sans-serif;font-size:12px">
+          </div>
+          <div style="font-size:11px;color:#999;margin-top:8px">💡 הכתובת המלאה תופיע רק לאחר החתימה (ב-PDF)</div>
+        </div>
       </div>
       <div class="fgroup"><label class="flabel">מחיר / שכירות</label><input class="finput" id="cb-price" type="text" placeholder="₪ 0,000,000 (אופציונלי)"></div>
       <div class="fgroup"><label class="flabel">עמלת מכירה (% מכל צד)</label><input class="finput" id="cb-sale-fee" type="number" step="0.1" min="0" value="1"></div>
@@ -847,7 +874,14 @@ if('caches' in window){
 
 <script>
 /* ══ CONFIG ══ */
-const MGR_PWD = 'kings2024';
+// Manager password is stored ONLY as a SHA-256 hash — the plaintext is not in
+// this file, so it can't be read out of the HTML. (Change it by replacing this
+// hash: run sha256 of your new password.)
+const MGR_PWD_HASH = '23f5839dd6ed94ed644e4071f46c66b12328592fe0ae4b4bfce68839404e4cad';
+async function sha256Hex(str){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(str)));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
 const OFFICE = {name:'Kings Jerusalem Luxury Real Estate',id:'68532365',addr:'קינג ג׳ורג׳ 52, ירושלים',license:'3142656',phone:'02-9998228'};
 
 // Jerusalem neighborhood mapping by street/area
@@ -1018,16 +1052,7 @@ const SUPA_KEY = 'sb_publishable_j7O4b-RIekwYLY_FWaIx9g_BN3jLSCY';
 async function supaFetch(table, method, body, upsert=false){
   const url = `${SUPA_URL}/rest/v1/${table}`;
   const prefer = method==='POST' ? (upsert ? 'resolution=merge-duplicates,return=minimal' : 'return=minimal') : 'return=minimal';
-  // Order by a column that actually EXISTS on each table. The clients and
-  // properties tables have no `created_at` column, so ordering every GET by
-  // created_at (the old behaviour) made those requests fail with a 400 — which
-  // is exactly why saved clients never loaded back into the app.
-  const orderCol = table==='agreements' ? 'created_at.desc'
-                 : table==='properties' ? 'cnt.desc'
-                 : table==='clients'    ? 'seen.desc'
-                 : '';
-  const getUrl = url + '?limit=1000' + (orderCol ? '&order='+orderCol : '');
-  const res = await fetch(method==='GET' ? getUrl : url, {
+  const res = await fetch(method==='GET' ? url+'?order=created_at.desc&limit=1000' : url, {
     method,
     headers:{
       'apikey': SUPA_KEY,
@@ -1126,18 +1151,11 @@ async function syncToSupabase(agreement, retryCount=0, throwOnError=false){
       if(retryCount===0) throw new Error('sync failed: '+res.status);
     }
 
-    // sync client (upsert) — write DIRECTLY from the agreement so EVERY signed or
-    // saved agreement guarantees a client row in the manager-accessible database,
-    // even when the client isn't present in the local clientsDB. Falls back to a
-    // phone-based key when there's no ID (same scheme used elsewhere as clientKey).
-    const agClientKey = agreement.clientId || (agreement.clientPhone ? 'ph_'+String(agreement.clientPhone).replace(/\D/g,'') : '');
-    if(agClientKey){
-      const ciLocal = clientsDB.find(c=>c.id===agClientKey);
+    // sync client (upsert)
+    const ci = clientsDB.find(c=>c.id===agreement.clientId);
+    if(ci){
       const clientRes = await supaFetch('clients','POST',{
-        id: agClientKey,
-        name: agreement.clientName || (ciLocal&&ciLocal.name) || '',
-        phone: agreement.clientPhone || (ciLocal&&ciLocal.phone) || '',
-        seen: (ciLocal&&ciLocal.seen) || agreement.date || new Date().toISOString()
+        id: ci.id, name: ci.name, phone: ci.phone, seen: ci.seen
       }, true);
       if(clientRes && !clientRes.ok && clientRes.status){
         const clientErrText = await clientRes.text().catch(()=>'');
@@ -1258,7 +1276,7 @@ function buildAgentGrid(){
     const b = document.createElement('button');
     b.className = 'agent-btn';
     b.textContent = a.name;
-    b.onclick = () => loginAgent(a);
+    b.onclick = () => selectAgent(a);
     grid.appendChild(b);
   });
 }
@@ -1267,10 +1285,14 @@ function buildAgentGrid(){
 window.onload = async function(){
   // Build grid immediately - never block on Supabase
   buildAgentGrid();
-  // Sync Supabase in background
+  // Sync Supabase in background, then auto-login the remembered agent — unless this
+  // page load is a client opening a remote sign/PDF link (handled further below).
+  const _p = new URLSearchParams(window.location.search);
+  const _isLink = _p.get('pdf') || _p.get('id') || _p.get('sign');
   loadAgentsFromSupa().then(()=>{
     buildAgentGrid();
-  }).catch(()=>{});
+    if(!_isLink) tryAutoLoginAgent();
+  }).catch(()=>{ if(!_isLink) tryAutoLoginAgent(); });
   // Set real logos
   // Dark backgrounds: mix-blend-mode screen makes black transparent, gold shows
   document.querySelectorAll('#login-logo-img,#hdr-logo-img,#view-hdr-logo').forEach(el=>{
@@ -1305,7 +1327,74 @@ window.onload = async function(){
 };
 
 /* ══ AUTH ══ */
-function loginAgent(a){
+let _pendingAgent=null;
+
+// Agent taps their name in the grid. If an ID (their password) is on file, prompt
+// for it; otherwise (no ID configured) log in directly, per policy.
+function selectAgent(a){
+  if(!a || !a.id || !String(a.id).trim()){
+    rememberAgent(a.name);
+    doAgentLogin(a);
+    return;
+  }
+  _pendingAgent=a;
+  const g=document.getElementById('agent-pwd-greeting'); if(g) g.textContent='היי '+a.name;
+  const err=document.getElementById('agent-pwd-err'); if(err) err.style.display='none';
+  const inp=document.getElementById('agent-pwd'); if(inp) inp.value='';
+  document.getElementById('agent-select-block').style.display='none';
+  document.getElementById('agent-pwd-block').style.display='block';
+  if(inp) setTimeout(()=>inp.focus(),100);
+}
+
+// Check the entered ID against the agent's stored ID. On success we remember the
+// agent on THIS device so the password is never asked again here.
+function verifyAgentPwd(){
+  if(!_pendingAgent) return;
+  const v=(document.getElementById('agent-pwd').value||'').trim();
+  if(v && v===String(_pendingAgent.id).trim()){
+    document.getElementById('agent-pwd-err').style.display='none';
+    document.getElementById('agent-pwd').value='';
+    rememberAgent(_pendingAgent.name);
+    const a=_pendingAgent; _pendingAgent=null;
+    backToAgentSelect();
+    doAgentLogin(a);
+  } else {
+    document.getElementById('agent-pwd-err').style.display='block';
+    document.getElementById('agent-pwd').value='';
+  }
+}
+
+function backToAgentSelect(){
+  _pendingAgent=null;
+  const pb=document.getElementById('agent-pwd-block'); if(pb) pb.style.display='none';
+  const sb=document.getElementById('agent-select-block'); if(sb) sb.style.display='block';
+}
+
+function rememberAgent(name){
+  try{ localStorage.setItem('k_auth_agent', name); }catch(e){}
+}
+
+// Auto-login the remembered agent on this device (called once agents are loaded).
+function tryAutoLoginAgent(){
+  let name=null;
+  try{ name=localStorage.getItem('k_auth_agent'); }catch(e){}
+  if(!name) return false;
+  const a=AGENTS.find(x=>x.name===name);
+  if(a){ doAgentLogin(a); return true; }
+  try{ localStorage.removeItem('k_auth_agent'); }catch(e){} // agent was removed
+  return false;
+}
+
+function logoutAgent(){
+  if(!confirm('לצאת מהחשבון? בכניסה הבאה תתבקש להזין תעודת זהות שוב.')) return;
+  try{ localStorage.removeItem('k_auth_agent'); }catch(e){}
+  agent=null;
+  backToAgentSelect();
+  const mp=document.getElementById('mgr-pwd'); if(mp) mp.value='';
+  showScreen('screen-login');
+}
+
+function doAgentLogin(a){
   agent=a;
   document.getElementById('hdr-agent').textContent=a.name;
   document.getElementById('dash-greeting').textContent='שלום, '+a.name+'!';
@@ -1413,9 +1502,11 @@ function startBgPolling(agentName){
   }, 60000); // every 60 seconds
 }
 
-function loginMgr(){
+async function loginMgr(){
   const v=document.getElementById('mgr-pwd').value;
-  if(v===MGR_PWD){
+  let ok=false;
+  try{ ok = (await sha256Hex(v)) === MGR_PWD_HASH; }catch(e){ ok=false; }
+  if(ok){
     document.getElementById('pwd-err').style.display='none';
     showScreen('screen-mgr');
     // Show loading indicator then load fresh from Supabase
@@ -1945,19 +2036,16 @@ async function showMyAgreements(){
 function showClientDB(){
   showScreen('screen-clientdb');
   document.getElementById('client-db-list').innerHTML='<div class="empty">⏳ טוען...</div>';
-  // Load ALL clients from Supabase. The clients table has no per-agent column,
-  // so we can't (and mustn't) filter server-side — the old `&agent=eq.` filter
-  // referenced a non-existent column and made this request fail every time, which
-  // is why the agent's client list looked empty. Per-agent scoping is applied in
-  // renderClientDB() using this agent's own agreements.
-  fetch(`${SUPA_URL}/rest/v1/clients?order=seen.desc&limit=1000`,{
+  // Sync from Supabase - only current agent's clients
+  const agentFilter = agent ? `&agent=eq.${encodeURIComponent(agent.name)}` : '';
+  fetch(`${SUPA_URL}/rest/v1/clients?order=name.asc&limit=500${agentFilter}`,{
     headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
   }).then(r=>r.json()).then(rows=>{
     if(rows&&!rows.error&&rows.length){
       rows.forEach(r=>{
         const idx=clientsDB.findIndex(c=>c.id===r.id);
-        if(idx>=0) clientsDB[idx]={...clientsDB[idx],name:r.name,id:r.id,phone:r.phone,seen:r.seen};
-        else clientsDB.push({name:r.name,id:r.id,phone:r.phone,seen:r.seen});
+        if(idx>=0) clientsDB[idx]={name:r.name,id:r.id,phone:r.phone,seen:r.seen,agentName:r.agent_name||''};
+        else clientsDB.push({name:r.name,id:r.id,phone:r.phone,seen:r.seen,agentName:r.agent_name||''});
       });
       save();
     }
@@ -1966,19 +2054,22 @@ function showClientDB(){
 }
 function renderClientDB(){
   const q=(document.getElementById('s-clients-ag')?.value||'').toLowerCase();
-  // Show only the CURRENT agent's clients — i.e. clients that appear on an
-  // agreement handled by this agent. Match by client ID or by phone number
-  // (so ID-less clients are covered too). Deduplicate by ID/name.
+  // Deduplicate by ID — show only current agent's clients
   const seen=new Set();
-  const myAgs=agreements.filter(a=>!agent||a.agent===agent.name);
-  const myIds=new Set(myAgs.map(a=>a.clientId).filter(Boolean));
-  const myPhones=new Set(myAgs.map(a=>(a.clientPhone||'').replace(/\D/g,'')).filter(Boolean));
+  // Filter by agreements belonging to this agent
+  const myClientIds=new Set(agreements.filter(a=>!agent||a.agent===agent.name).map(a=>a.clientId).filter(Boolean));
   let list=clientsDB.filter(c=>{
+    // Only show clients that have agreements with this agent
     const key=c.id||c.name;
     if(seen.has(key)) return false;
     seen.add(key);
-    const ph=(c.phone||'').replace(/\D/g,'');
-    return myIds.has(c.id) || (ph && myPhones.has(ph));
+    // If client has an agentName field, use it; otherwise check agreements
+    if(c.agentName && agent && c.agentName !== agent.name) return false;
+    if(c.id && !myClientIds.has(c.id) && myClientIds.size>0) {
+      // Still show if no agent filter (no agreements yet but client was added manually)
+      if(c.agentName && agent && c.agentName !== agent.name) return false;
+    }
+    return true;
   }).sort((a,b)=>(a.name||'').localeCompare(b.name||'','he'));
   if(q) list=list.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.id||'').includes(q)||(c.phone||'').includes(q));
   const el=document.getElementById('client-db-list');
@@ -3466,62 +3557,6 @@ async function loadPropsFromSupa(){
   }catch(e){console.log('load props err',e);}
 }
 
-async function loadClientsFromSupa(){
-  try{
-    const res=await fetch(`${SUPA_URL}/rest/v1/clients?select=*&order=seen.desc&limit=1000`,{
-      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
-    });
-    const rows=await res.json();
-    if(rows&&!rows.error&&rows.length){
-      rows.forEach(r=>{
-        const idx=clientsDB.findIndex(c=>c.id===r.id);
-        const mapped={id:r.id,name:r.name,phone:r.phone||'',seen:r.seen};
-        if(idx>=0) Object.assign(clientsDB[idx],mapped);
-        else clientsDB.push(mapped);
-      });
-      save();
-    }
-  }catch(e){console.log('load clients err',e);}
-}
-
-// One-shot, idempotent backfill: make sure every client that appears on an
-// existing agreement also exists in the clients table (manager-accessible).
-// Dedupes by ID when present, otherwise by phone number. Safe to run repeatedly
-// because it upserts — it self-heals any client that was missed in the past.
-async function backfillClientsFromAgreements(){
-  try{
-    const haveIds=new Set(clientsDB.map(c=>c.id).filter(Boolean));
-    const havePhones=new Set(clientsDB.map(c=>(c.phone||'').replace(/\D/g,'')).filter(Boolean));
-    const toAdd=[]; const addedKeys=new Set();
-    for(const a of agreements){
-      const name=(a.clientName||'').trim();
-      const phoneDigits=(a.clientPhone||'').replace(/\D/g,'');
-      if(!name && !phoneDigits) continue;
-      const key = a.clientId || (phoneDigits?('ph_'+phoneDigits):'');
-      if(!key) continue;
-      if(haveIds.has(key)) continue;
-      if(phoneDigits && havePhones.has(phoneDigits)) continue;
-      if(addedKeys.has(key)) continue;
-      addedKeys.add(key);
-      toAdd.push({id:key,name,phone:a.clientPhone||'',seen:a.date||new Date().toISOString()});
-    }
-    if(!toAdd.length) return 0;
-    for(const c of toAdd){
-      try{
-        await fetch(`${SUPA_URL}/rest/v1/clients`,{
-          method:'POST',
-          headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
-          body:JSON.stringify(c)
-        });
-      }catch(e){console.log('backfill client err',e);}
-      if(!clientsDB.some(x=>x.id===c.id)) clientsDB.push(c);
-    }
-    save();
-    console.log('Backfilled '+toAdd.length+' clients from agreements');
-    return toAdd.length;
-  }catch(e){console.log('backfill err',e);return 0;}
-}
-
 async function syncClientsToSupa(){
   try{
     for(const cl of clientsDB){
@@ -3755,12 +3790,7 @@ function renderAgreements(){
   const delBtn=document.getElementById('del-sel-ags');if(delBtn)delBtn.style.display='none';
   const fa=document.getElementById('fil-agent').value;
   const ft=document.getElementById('fil-type').value;
-  // Newest agreement first, oldest last (sort by creation time, robust to source order)
-  let list=[...agreements].sort((a,b)=>{
-    const da=new Date(a.date||0).getTime(), db=new Date(b.date||0).getTime();
-    if(db!==da) return db-da;
-    return (Number(b.id)||0)-(Number(a.id)||0);
-  });
+  let list=[...agreements].reverse();
   if(fa)list=list.filter(a=>a.agent===fa);
   if(ft)list=list.filter(a=>a.type===ft);
   const el=document.getElementById('list-agreements');
@@ -3861,8 +3891,8 @@ function renderAgents(){
 /* ══ MANAGER LOAD ══ */
 async function loadMgr(){
   document.getElementById('mgr-stats').innerHTML='<div style="grid-column:span 3;text-align:center;color:var(--gray);font-size:12px">⏳ טוען...</div>';
-  // Load agents + props + clients from Supabase first
-  await Promise.all([loadAgentsFromSupa(), loadPropsFromSupa(), loadClientsFromSupa()]);
+  // Load agents + props from Supabase first
+  await Promise.all([loadAgentsFromSupa(), loadPropsFromSupa()]);
   // Then load agreements fresh from Supabase
   try{
     const res=await fetch(`${SUPA_URL}/rest/v1/agreements?order=created_at.desc&limit=500`,{
@@ -3884,9 +3914,6 @@ async function loadMgr(){
       save();
     }
   }catch(e){console.log('mgr sync err',e);}
-  // Retroactively ensure every client that appears on an existing agreement is
-  // also saved in the manager-accessible clients database (dedup by ID/phone).
-  await backfillClientsFromAgreements();
   refreshMgrStats();
   const fa=document.getElementById('fil-agent');
   fa.innerHTML='<option value="">כל הסוכנים</option>';
@@ -4018,12 +4045,27 @@ let _collabOrigText = '';
 let collabSigDrawn = false;
 
 function startCollabForm(){
-  ['cb-agent1','cb-phone1','cb-agent2','cb-phone2','cb-addr','cb-price','cb-client','cb-cphone','cb-notes'].forEach(id=>{
+  ['cb-agent1','cb-phone1','cb-agent2','cb-phone2','cb-addr','cb-price','cb-client','cb-cphone','cb-notes','cb-neighborhood-edit'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
   const sf=document.getElementById('cb-sale-fee'); if(sf) sf.value='1';
   const rf=document.getElementById('cb-rent-fee'); if(rf) rf.value='0.5';
+  const hc=document.getElementById('cb-hide-addr'); if(hc) hc.checked=false;
+  const np=document.getElementById('cb-neighborhood-preview'); if(np) np.style.display='none';
   showScreen('screen-collab');
+}
+
+// Mirror of updateNeighborhoodPreview() for the collaboration form.
+function updateCollabNeighborhoodPreview(){
+  const cb=document.getElementById('cb-hide-addr');
+  const preview=document.getElementById('cb-neighborhood-preview');
+  const addr=(document.getElementById('cb-addr')?.value||'').trim();
+  const isHidden=cb?cb.checked:false;
+  if(!addr||!isHidden){ if(preview) preview.style.display='none'; return; }
+  preview.style.display='block';
+  const hood=getNeighborhoodFromAddress(addr);
+  const disp=document.getElementById('cb-neighborhood-display'); if(disp) disp.textContent=hood;
+  const edit=document.getElementById('cb-neighborhood-edit'); if(edit && !edit.value.trim()) edit.value=hood;
 }
 
 function acAddrCollab(val){
@@ -4047,7 +4089,10 @@ function collabContractText(d){
   const saleFee=d.saleFee?d.saleFee+'% + מע"מ מכל צד':'1% + מע"מ מכל צד';
   const rentFee=d.rentFee?d.rentFee+' חודש + מע"מ מכל צד':'חצי חודש + מע"מ מכל צד';
   const clientLine=d.clientName?'\nלקוח: '+d.clientName+(d.clientPhone?' | טלפון: '+d.clientPhone:''):'';
-  const propLine='נכס: '+d.addr+(d.price?' | מחיר: ₪'+d.price:'');
+  // When masked (during signing) and hide is on, show only the neighbourhood;
+  // the real address is revealed after signing (in the PDF).
+  const shownAddr=(d.masked && d.hideAddr)?(d.displayNeighborhood||'שכונה'):d.addr;
+  const propLine='נכס: '+shownAddr+(d.price?' | מחיר: ₪'+d.price:'');
   const nb=d.notes?'\n\nהערות: '+d.notes:'';
   return 'הסכם שיתוף פעולה בין מתווכים\n\n'+propLine+clientLine+'\n\nהצדדים:\nסוכן מציג: '+d.agent1+(d.phone1?' | '+d.phone1:'')+'\nסוכן מביא:  '+d.agent2+(d.phone2?' | '+d.phone2:'')+'\n\nהוסכם בין הצדדים כדלקמן:\n\n1. הצדדים יפעלו מתוך נאמנות, הגינות ושקיפות לשיתוף פעולה.\n\n2. הצדדים לא ימסרו את פרטי הנכס / הקונה למתווך אחר, אלא אם יקבלו אישור ובכתב.\n\n3. כל קשר עם הקונה / בעל נכס יהיה באמצעות הנציג המייצג (אלא אם סוכם בכתב אחרת).\n\n4. הסכם זה תקף לגבי כל עסקה אשר תיווצר מהנכס הנ"ל גם עם מעורבות מתווך/נציג נוסף (צד ג\').\n\n5. הסכם זה תקף על הנכסים הנ"ל בלבד.\n\n6. לכל הסכומים המצויינים לעיל יתווסף מע"מ כחוק.\n\nדמי תיווך:\n   מכירה: '+saleFee+'\n   שכירות: '+rentFee+nb;
 }
@@ -4065,9 +4110,13 @@ function toCollabSign(){
     clientName:(document.getElementById('cb-client')?.value||'').trim(),
     clientPhone:(document.getElementById('cb-cphone')?.value||'').trim(),
     notes:(document.getElementById('cb-notes')?.value||'').trim(),
+    hideAddr:(document.getElementById('cb-hide-addr')?.checked)||false,
+    displayNeighborhood:'',
   };
+  if(d.hideAddr) d.displayNeighborhood=(document.getElementById('cb-neighborhood-edit')?.value||'').trim()||getNeighborhoodFromAddress(d.addr);
   if(!d.agent1||!d.agent2||!d.addr){alert('נא למלא שמות שני הסוכנים וכתובת נכס');return;}
-  const raw=collabContractText(d);
+  // Signer sees the masked version (neighbourhood only) when hide is on.
+  const raw=collabContractText({...d, masked:true});
   _collabOrigText=raw;
   const ta=document.getElementById('collab-contract-ta');
   if(ta){ta.value=raw;}
@@ -4112,8 +4161,17 @@ async function submitCollab(reqSig){
     clientName:(document.getElementById('cb-client')?.value||'').trim(),
     clientPhone:(document.getElementById('cb-cphone')?.value||'').trim(),
     notes:(document.getElementById('cb-notes')?.value||'').trim(),
+    hideAddr:(document.getElementById('cb-hide-addr')?.checked)||false,
+    displayNeighborhood:'',
   };
-  const editedText=document.getElementById('collab-contract-ta')?.value||collabContractText(d);
+  if(d.hideAddr) d.displayNeighborhood=(document.getElementById('cb-neighborhood-edit')?.value||'').trim()||getNeighborhoodFromAddress(d.addr);
+  // The signer saw the masked text (neighbourhood only). Store the REVEALED
+  // (real-address) version unless the agent manually edited the text — so the
+  // PDF / office copy shows the full address after signing.
+  const maskedText=collabContractText({...d, masked:true});
+  const plainText=collabContractText({...d, masked:false});
+  const taVal=document.getElementById('collab-contract-ta')?.value;
+  const editedText=(taVal && taVal!==maskedText) ? taVal : plainText;
   const now=new Date();
   const a={
     id:Date.now(),type:'collab',typeName:'הסכם שיתוף פעולה',
@@ -4126,6 +4184,7 @@ async function submitCollab(reqSig){
     lang:'he',excl:false,exclFrom:'',exclTo:'',
     sig,date:now.toISOString(),dateStr:now.toLocaleDateString('he-IL'),
     pendingSign:!sig,customText:editedText,
+    hideAddr:d.hideAddr,displayNeighborhood:d.displayNeighborhood||'',
     collabAgent1:d.agent1,collabPhone1:d.phone1,
     collabAgent2:d.agent2,collabPhone2:d.phone2,collabPrice:d.price,
   };
@@ -4134,7 +4193,7 @@ async function submitCollab(reqSig){
     await fetch(SUPA_URL+'/rest/v1/agreements',{
       method:'POST',
       headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-      body:JSON.stringify({id:a.id,type:'collab',type_name:'הסכם שיתוף פעולה',agent:a.agent,agent_en:a.agentEn,agent_phone:'',agent_license:'',client_name:a.clientName,client_id:'',client_phone:a.clientPhone,addr:a.addr,sale_fee:a.saleFee,rent_fee:a.rentFee,vat_sale:false,vat_rent:false,notes:a.notes||'',lang:'he',excl:false,excl_from:'',excl_to:'',signature:sig,date_str:a.dateStr,pending_sign:!sig})
+      body:JSON.stringify({id:a.id,type:'collab',type_name:'הסכם שיתוף פעולה',agent:a.agent,agent_en:a.agentEn,agent_phone:'',agent_license:'',client_name:a.clientName,client_id:'',client_phone:a.clientPhone,addr:a.addr,sale_fee:a.saleFee,rent_fee:a.rentFee,vat_sale:false,vat_rent:false,notes:a.notes||'',lang:'he',excl:false,excl_from:'',excl_to:'',hide_addr:a.hideAddr||false,display_neighborhood:a.displayNeighborhood||'',custom_text:a.customText||'',signature:sig,date_str:a.dateStr,pending_sign:!sig})
     });
   }catch(e){console.log('collab sync err',e);}
   window._clientSignedAg=a;
