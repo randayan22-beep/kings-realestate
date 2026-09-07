@@ -1694,10 +1694,22 @@ function setLang(l){
   document.getElementById('lb-he').classList.toggle('on',l==='he');
   document.getElementById('lb-en').classList.toggle('on',l==='en');
 }
+function todayISO(){
+  const t=new Date();
+  return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+}
 function toggleExcl(){
   exclOn=!exclOn;
   document.getElementById('excl-tog').classList.toggle('on',exclOn);
   document.getElementById('excl-dates').classList.toggle('open',exclOn);
+  // When exclusivity is switched ON, make sure it has valid dates so the
+  // exclusivity document is never silently dropped: default the start date to
+  // today (if empty) and compute the end date from the selected duration.
+  if(exclOn){
+    const fromEl=document.getElementById('f-excl-from');
+    if(fromEl && !fromEl.value) fromEl.value=todayISO();
+    recalcExclEnd('f');
+  }
 }
 function toggleVat(t){
   if(t==='sale'){
@@ -1728,7 +1740,13 @@ function computeExclEndDate(fromDateStr, durationVal){
 }
 
 function getFormData(){
-  const exclFromVal = document.getElementById('f-excl-from').value;
+  let exclFromVal = document.getElementById('f-excl-from').value;
+  // Safety net: if exclusivity is toggled ON but no start date was picked, default
+  // it to today so the exclusivity is never silently dropped from the agreement.
+  if(exclOn && !exclFromVal){
+    exclFromVal = todayISO();
+    const fe=document.getElementById('f-excl-from'); if(fe) fe.value=exclFromVal;
+  }
   const exclDurEl = document.getElementById('f-excl-duration');
   const exclDurVal = exclDurEl ? exclDurEl.value : '6';
   // Recompute the end date directly from (start date + duration) rather than
