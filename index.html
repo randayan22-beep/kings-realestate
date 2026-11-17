@@ -1667,10 +1667,9 @@ function startForm(type){
   const hasSale=['owner-sale','owner-both','buyer','both-client'].includes(type);
   const hasRent=['owner-rent','owner-both','renter','both-client'].includes(type);
   const hasExcl=['owner-sale','owner-rent','owner-both'].includes(type);
-  // Hiding the address only makes sense when sending to an interested party (buyer/renter) —
-  // the property OWNER always sees/knows their own address, so this option is irrelevant
-  // (and would be confusing) for owner-sale / owner-rent / owner-both agreements.
-  const hasHideAddr=['buyer','renter','both-client'].includes(type);
+  // Hide-address is available on EVERY agreement type (the agent may always choose
+  // to withhold the exact address from whoever signs, for any agreement).
+  const hasHideAddr=true;
   document.getElementById('fee-sale').style.display=hasSale?'block':'none';
   document.getElementById('fee-rent').style.display=hasRent?'block':'none';
   document.getElementById('card-excl').style.display=hasExcl?'block':'none';
@@ -2712,22 +2711,39 @@ async function checkRemoteSign(){
     document.getElementById('screen-remote').classList.add('active');
     document.getElementById('r-contract').innerHTML='<div style="text-align:center;padding:20px;color:var(--gray)">⏳ טוען הסכם...</div>';
     try {
-      const res=await fetch(`${SUPA_URL}/rest/v1/agreements?id=eq.${String(agId)}&limit=1`,{
+      // PRIVACY (hide-address): when the link is flagged ha=1, do NOT fetch the real
+      // address — nor any field that could contain it (custom_text / excl_contract_text)
+      // — until the client has actually signed. We request an explicit column list that
+      // omits those, so the real address is never sent to the client's device before
+      // signing. It is revealed (re-fetched) only after the signature is saved.
+      const SAFE_COLS='id,type,type_name,agent,agent_en,agent_id,agent_phone,agent_license,client_name,client_id,client_phone,prop_price,sale_fee,rent_fee,vat_sale,vat_rent,notes,lang,excl,excl_from,excl_to,signature,date_str,pending_sign,hide_addr,display_neighborhood';
+      const selectQ = hideAddrParam ? ('&select='+SAFE_COLS) : '';
+      const res=await fetch(`${SUPA_URL}/rest/v1/agreements?id=eq.${String(agId)}${selectQ}&limit=1`,{
         headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}
       });
       const rows=await res.json();
       if(rows&&rows.length){
         const r=rows[0];
+        const isHidden = r.hide_addr || hideAddrParam;
         // If already signed — show success screen instead
         if(r.signature && r.signature.length > 100){
+          // Already signed → the address may now be revealed for the PDF. When the
+          // safe (address-less) select was used, fetch the hidden fields now.
+          let addr=r.addr||'', custom=r.custom_text||'', exclTxt=r.excl_contract_text||'';
+          if(hideAddrParam){
+            try{
+              const fr=await fetch(`${SUPA_URL}/rest/v1/agreements?id=eq.${String(agId)}&select=addr,custom_text,excl_contract_text&limit=1`,{headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}});
+              const frows=await fr.json(); if(frows&&frows.length){ addr=frows[0].addr||''; custom=frows[0].custom_text||''; exclTxt=frows[0].excl_contract_text||''; }
+            }catch(e){}
+          }
           // Save for potential download
           window._clientSignedAg={id:r.id,type:r.type,typeName:r.type_name,
             agent:r.agent,agentEn:r.agent_en||'',agentId:r.agent_id||'',agentLicense:r.agent_license||'',
             clientName:r.client_name,clientId:r.client_id||'',clientPhone:r.client_phone,
-            addr:r.addr,propPrice:r.prop_price||'',saleFee:r.sale_fee,rentFee:r.rent_fee,vatSale:r.vat_sale,vatRent:r.vat_rent,
+            addr:addr,propPrice:r.prop_price||'',saleFee:r.sale_fee,rentFee:r.rent_fee,vatSale:r.vat_sale,vatRent:r.vat_rent,
             notes:r.notes||'',lang:r.lang||'he',excl:r.excl,exclFrom:r.excl_from||'',exclTo:r.excl_to||'',
-            exclContractText:r.excl_contract_text||'',customText:r.custom_text||'',
-            sig:r.signature,dateStr:r.date_str,hideAddr:r.hide_addr||hideAddrParam,displayNeighborhood:r.display_neighborhood||displayNeighborhoodParam};
+            exclContractText:exclTxt,customText:custom,
+            sig:r.signature,dateStr:r.date_str,hideAddr:isHidden,displayNeighborhood:r.display_neighborhood||displayNeighborhoodParam};
           const nm=r.client_name||'';
           document.getElementById('screen-remote').innerHTML=`
             <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px;text-align:center;background:#F7F5F0">
@@ -2741,15 +2757,18 @@ async function checkRemoteSign(){
             </div>`;
           return;
         }
+        // NOT signed yet. For hidden agreements the real address (and any text that
+        // could contain it) is withheld — the contract is rendered from the template
+        // using only the neighbourhood, so the page contains no address at all.
         const data={
           id:r.id, type:r.type, typeName:r.type_name,
           clientName:r.client_name, clientId:r.client_id, clientPhone:r.client_phone,
-          addr:r.addr, propPrice:r.prop_price||'', saleFee:r.sale_fee, rentFee:r.rent_fee,
+          addr: isHidden ? '' : (r.addr||''), propPrice:r.prop_price||'', saleFee:r.sale_fee, rentFee:r.rent_fee,
           vatSale:r.vat_sale, vatRent:r.vat_rent, notes:r.notes,
           lang:r.lang||'he', excl:r.excl, exclFrom:r.excl_from, exclTo:r.excl_to,
-          exclContractText:r.excl_contract_text||'', customText:r.custom_text||'',
+          exclContractText: isHidden ? '' : (r.excl_contract_text||''), customText: isHidden ? '' : (r.custom_text||''),
           agent:r.agent, agentEn:r.agent_en||'', dateStr:r.date_str,
-          hideAddr:r.hide_addr||hideAddrParam||false, displayNeighborhood:r.display_neighborhood||displayNeighborhoodParam||'',
+          hideAddr: isHidden, displayNeighborhood:r.display_neighborhood||displayNeighborhoodParam||'',
         };
         loadRemoteSign(data);
       } else {
@@ -2862,6 +2881,19 @@ async function submitRemote(){
     });
   } catch(e){console.log('patch err',e);}
 
+  // For hidden-address agreements the client's device never received the real
+  // address. Now that the signature is saved, fetch it (and any custom / exclusivity
+  // text) so the downloaded PDF includes the real address — revealed only AFTER
+  // signing, exactly like the signature itself.
+  let signedAddr=data.addr||'', signedCustom=data.customText||'', signedExcl=data.exclContractText||'';
+  if(data.hideAddr){
+    try{
+      const fr=await fetch(`${SUPA_URL}/rest/v1/agreements?id=eq.${data.id}&select=addr,custom_text,excl_contract_text&limit=1`,{headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}});
+      const frows=await fr.json();
+      if(frows&&frows.length){ signedAddr=frows[0].addr||''; signedCustom=frows[0].custom_text||''; signedExcl=frows[0].excl_contract_text||''; }
+    }catch(e){ console.log('reveal addr err',e); }
+  }
+
   // Update locally too
   const idx=agreements.findIndex(a=>String(a.id)===String(data.id));
   if(idx>=0){
@@ -2870,19 +2902,20 @@ async function submitRemote(){
     agreements[idx].clientPhone=phone;
     agreements[idx].clientId=id;
     agreements[idx].pendingSign=false;
-    // Preserve exclContractText and customText from remote data
-    agreements[idx].exclContractText=data.exclContractText||'';
-    agreements[idx].customText=data.customText||'';
+    // Preserve (now-revealed) address + exclusivity/custom text from remote data
+    if(signedAddr) agreements[idx].addr=signedAddr;
+    agreements[idx].exclContractText=signedExcl||'';
+    agreements[idx].customText=signedCustom||'';
   } else {
     // Add to local if not exists (different device)
     agreements.push({
       id:data.id, type:data.type, typeName:data.typeName,
       agent:data.agent, agentEn:data.agentEn||'', agentPhone:'', agentLicense:'',
       clientName:name, clientId:id, clientPhone:phone,
-      addr:data.addr, propPrice:data.propPrice||'', saleFee:data.saleFee, rentFee:data.rentFee,
+      addr:signedAddr, propPrice:data.propPrice||'', saleFee:data.saleFee, rentFee:data.rentFee,
       vatSale:data.vatSale, vatRent:data.vatRent, notes:data.notes||'',
       lang:data.lang||'he', excl:data.excl, exclFrom:data.exclFrom||'', exclTo:data.exclTo||'',
-      exclContractText:data.exclContractText||'', customText:data.customText||'',
+      exclContractText:signedExcl||'', customText:signedCustom||'',
       sig, date:new Date().toISOString(), dateStr:new Date().toLocaleDateString('he-IL'),
       pendingSign:false,
     });
@@ -2912,10 +2945,10 @@ async function submitRemote(){
     id:data.id, type:data.type, typeName:data.typeName,
     agent:data.agent, agentEn:data.agentEn||'', agentPhone:'', agentLicense:'',
     clientName:name, clientId:id, clientPhone:phone,
-    addr:data.addr, propPrice:data.propPrice||'', saleFee:data.saleFee, rentFee:data.rentFee,
+    addr:signedAddr, propPrice:data.propPrice||'', saleFee:data.saleFee, rentFee:data.rentFee,
     vatSale:data.vatSale, vatRent:data.vatRent, notes:data.notes||'',
     lang:data.lang||'he', excl:data.excl, exclFrom:data.exclFrom||'', exclTo:data.exclTo||'',
-    exclContractText:data.exclContractText||'', customText:data.customText||'',
+    exclContractText:signedExcl||'', customText:signedCustom||'',
     sig, dateStr:new Date().toLocaleDateString('he-IL'),
   };
   window._clientSignedAg = clientAg;
@@ -3012,11 +3045,9 @@ async function submitAgreement(requireSig=true){
       exclFrom:propEntry.exclFrom,exclTo:propEntry.exclTo});
   }
   const clientKey = d.id || ('ph_'+d.phone.replace(/\D/g,''));
-  // Capture hideAddr and neighborhood before creating agreement.
-  // Guarded by isInterestedPartyType(): even if stray DOM state exists, owner-side
-  // agreements (owner-sale/owner-rent/owner-both) never get hideAddr — the option is
-  // only relevant when sending to a buyer/renter/interested party.
-  const hideAddressFlag = isInterestedPartyType(formType) && document.getElementById('f-hide-addr').checked;
+  // Capture hideAddr and neighborhood before creating agreement. Available on every
+  // agreement type now — driven purely by the checkbox.
+  const hideAddressFlag = document.getElementById('f-hide-addr').checked;
   const neighborhoodText = hideAddressFlag ? (document.getElementById('f-neighborhood-edit').value.trim() || getNeighborhoodFromAddress(d.addr)) : '';
   const a={
     id:Date.now(),type:formType,typeName:FNAMES[formType]['he'],
@@ -3267,8 +3298,8 @@ async function quickSendWA(){
     pendingSign:true,
     customText:document.getElementById('contract-text')?.value||null,
     propPrice:d.propPrice||'',
-    hideAddr:isInterestedPartyType(formType) && document.getElementById('f-hide-addr').checked,
-    displayNeighborhood:(isInterestedPartyType(formType) && document.getElementById('f-hide-addr').checked) ? (document.getElementById('f-neighborhood-edit').value.trim() || getNeighborhoodFromAddress(d.addr)) : '',
+    hideAddr:document.getElementById('f-hide-addr').checked,
+    displayNeighborhood:(document.getElementById('f-hide-addr').checked) ? (document.getElementById('f-neighborhood-edit').value.trim() || getNeighborhoodFromAddress(d.addr)) : '',
   };
   agreements.push(a);
   // Update DBs — always save client (even without ID, using phone-based fallback key)
@@ -3839,7 +3870,12 @@ function renderAgreements(){
   const delBtn=document.getElementById('del-sel-ags');if(delBtn)delBtn.style.display='none';
   const fa=document.getElementById('fil-agent').value;
   const ft=document.getElementById('fil-type').value;
-  let list=[...agreements].reverse();
+  // Newest agreement at the top, oldest at the bottom (robust to source order)
+  let list=[...agreements].sort((a,b)=>{
+    const da=new Date(a.date||0).getTime(), db=new Date(b.date||0).getTime();
+    if(db!==da) return db-da;
+    return (Number(b.id)||0)-(Number(a.id)||0);
+  });
   if(fa)list=list.filter(a=>a.agent===fa);
   if(ft)list=list.filter(a=>a.type===ft);
   const el=document.getElementById('list-agreements');
